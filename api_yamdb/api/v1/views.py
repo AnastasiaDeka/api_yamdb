@@ -16,7 +16,7 @@ User = get_user_model()
 
 def send_confirmation_email(user, email_type='confirmation'):
     """Отправка email с кодом подтверждения или активации."""
-    # Ваша логика отправки email
+
     pass
 
 

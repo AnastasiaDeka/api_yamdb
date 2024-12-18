@@ -5,15 +5,14 @@ class User(AbstractUser):
     """
     Кастомная модель пользователя с ролями и биографией.
     """
-    
-    ROLE_CHOICES = [
-        ('user', 'User'),
-        ('moderator', 'Moderator'),
-        ('admin', 'Admin'),
-    ]
-    
+
+    class Role(models.TextChoices):
+        USER = 'user', 'User'
+        MODERATOR = 'moderator', 'Moderator'
+        ADMIN = 'admin', 'Admin'
+
     email = models.EmailField(unique=True)
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
+    role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
     bio = models.TextField(blank=True, null=True)
 
     @property
@@ -21,14 +20,14 @@ class User(AbstractUser):
         """
         Проверка на администратора.
         """
-        return self.role == 'admin' or self.is_superuser
+        return self.role == self.Role.ADMIN or self.is_superuser
 
     @property
     def is_moderator(self):
         """
         Проверка на модератора.
         """
-        return self.role == 'moderator'
+        return self.role == self.Role.MODERATOR
 
     def __str__(self):
         """

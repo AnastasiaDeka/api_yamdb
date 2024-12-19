@@ -1,26 +1,33 @@
 from django.db import models
 
 
-class Category(models.Model):
-    """Category model"""
+class BaseModel(models.Model):
+    """Базовая модель для моделей жанра и категории"""
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True, max_length=50)
 
     def __str__(self):
         return self.name
 
+    class Meta:
+        """Мета класс для базовой модели"""
+        ordering = ['-name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'slug'], name='unique_name_slug')
+        ]
 
-class Genre(models.Model):
-    """Genre model"""
-    name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True, max_length=50)
 
-    def __str__(self):
-        return self.name
+class Category(BaseModel):
+    """Модель категории"""
+
+
+class Genre(BaseModel):
+    """Модель жанра"""
 
 
 class Title(models.Model):
-    """Title model"""
+    """Модель произведения"""
     name = models.CharField(max_length=200)
     year = models.IntegerField()
     rating = models.IntegerField()
@@ -33,16 +40,17 @@ class Title(models.Model):
         return self.name
 
     class Meta:
+        """Мета класс для модели Title"""
         ordering = ['-id']
 
 
 class TitleGenre(models.Model):
-    """TitleGenre model"""
+    """Модель TitleGenre для связи произведения и жанра"""
     genre = models.ForeignKey(Genre, on_delete=models.SET_NULL, null=True)
     title = models.ForeignKey(Title, on_delete=models.SET_NULL, null=True)
 
     class Meta:
-        """Meta class for TitleGenre model"""
+        """Мета класс для модели TitleGenre"""
         constraints = [
             models.UniqueConstraint(
                 fields=['genre', 'title'], name='unique_title_genre')

@@ -4,12 +4,18 @@ from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework import filters
+from django.db.models import Avg
 from django.contrib.auth.tokens import default_token_generator
 from rest_framework_simplejwt.tokens import AccessToken
 from .serializers import (
     UserCreateSerializer, UserRecieveTokenSerializer, UserSerializer
 )
+from .serializers import (
+    ReviewSerializer, CommentSerializer
+)
 from .permissions import IsSuperUserOrAdmin
+from .permissions import IsAdminModeratorAuthor, ReadOnlyForAnon
+from reviews.models import Review
 
 User = get_user_model()
 
@@ -120,3 +126,38 @@ class ActivateAccountViewSet(viewsets.GenericViewSet):
             {'message': 'Ссылка для активации учетной записи отправлена на email.'},
             status=status.HTTP_200_OK
         )
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    permission_classes = (
+        IsAdminModeratorAuthor, ReadOnlyForAnon,
+    )
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset().annotate(avg_score=Avg('score'))
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+    permission_classes = (
+        IsAdminModeratorAuthor, ReadOnlyForAnon,
+    )
+
+    def get_review(self):
+        review_id = self.kwargs.get("review_id")
+        return get_object_or_404(Review, pk=review_id)
+
+    def get_queryset(self):
+        review = self.get_review()
+        return review.comments.all()
+
+    def perform_create(self, serializer):
+        review = self.get_review()
+        serializer.save(author=self.request.user, review=review)

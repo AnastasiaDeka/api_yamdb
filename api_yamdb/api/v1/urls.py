@@ -5,6 +5,9 @@ from .views import (
     TokenObtainViewSet,
     ResendConfirmationCodeViewSet, ActivateAccountViewSet,
 )
+from .views import (
+    ReviewViewSet, CommentViewSet
+)
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='users')
@@ -16,6 +19,9 @@ router.register(r'resend_confirmation_code',
                 basename='resend_confirmation_code')
 router.register(r'activate_account',
                 ActivateAccountViewSet, basename='activate_account')
+router.register('reviews', ReviewViewSet, basename='reviews')
+router.register(r'reviews/(?P<review_id>\d+)/comments', CommentViewSet,
+                   basename='comments')
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -10,12 +10,12 @@ def send_email(user, email_type='confirmation', activation_link=None):
     """Функция для отправки email с кодом подтверждения или ссылкой активации."""
     
     if email_type == 'confirmation':
-        confirmation_code = str(uuid.uuid4())
-        user.confirmation_code = confirmation_code
-        user.save()
-
+        if not user.confirmation_code:
+            user.confirmation_code = str(uuid.uuid4())  # Генерация кода
+        user.save()  # Обязательно сохраняем пользователя
+        
         subject = 'Ваш код подтверждения'
-        message = f'Ваш код: {confirmation_code}'
+        message = f'Ваш код: {user.confirmation_code}'
     
     elif email_type == 'activation':
         activation_token = serializer.dumps({'username': user.username}, salt='activation')

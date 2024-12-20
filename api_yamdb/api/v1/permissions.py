@@ -32,3 +32,16 @@ class ReadOnlyForAnon(permissions.BasePermission):
 
     def has_permission(self, request, view):
         return request.method in permissions.SAFE_METHODS or request.user.is_authenticated
+
+
+class IsAdminOrReadOnly(permissions.BasePermission):
+    """
+    Доступ только для администраторов на изменение.
+    """
+
+    def has_permission(self, request, view):
+        return (
+            request.method in permissions.SAFE_METHODS
+            or IsSuperUserOrAdmin().has_permission(request, view)
+        )
+

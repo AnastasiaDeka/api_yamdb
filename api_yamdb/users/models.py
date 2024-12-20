@@ -14,6 +14,7 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.USER)
     bio = models.TextField(blank=True, null=True)
+    confirmation_code = models.CharField(max_length=36, blank=True, null=True)
 
     @property
     def is_admin(self):
@@ -28,6 +29,13 @@ class User(AbstractUser):
         Проверка на модератора.
         """
         return self.role == self.Role.MODERATOR
+
+    @classmethod
+    def ROLES(cls):
+        """
+        Возвращает список всех ролей.
+        """
+        return [role[0] for role in cls.Role.choices]
 
     def __str__(self):
         """

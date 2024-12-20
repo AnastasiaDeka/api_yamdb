@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 
+from reviews.models import Comment, Review, Category, Genre, Title
+
 class UserCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для регистрации пользователя."""
 
@@ -47,3 +49,19 @@ class UserActivateSerializer(serializers.Serializer):
     """Сериализатор для активации учетной записи через email."""
     username = serializers.CharField(max_length=150)
     confirmation_code = serializers.CharField(max_length=200)
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    """Сериализатор для ревью."""
+
+    class Meta:
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        model = Review
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    """Сериализатор для комментариев к ревью."""
+
+    class Meta:
+        fields = ('id', 'author', 'created', 'review', 'text')
+        model = Comment

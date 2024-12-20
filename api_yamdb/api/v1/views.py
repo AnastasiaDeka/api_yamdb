@@ -9,7 +9,8 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import AccessToken
 from .serializers import (
-    UserCreateSerializer, UserRecieveTokenSerializer, UserSerializer
+    UserCreateSerializer, UserRecieveTokenSerializer, UserSerializer,
+    CommentSerializer, ReviewSerializer
 )
 from .permissions import IsSuperUserOrAdmin
 

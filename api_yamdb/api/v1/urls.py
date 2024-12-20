@@ -16,6 +16,9 @@ router.register(r'activate_account', ActivateAccountViewSet, basename='activate_
 router.register(r'categories', CategoryViewSet, basename='categories')
 router.register(r'genres', GenreViewSet, basename='genres')
 router.register(r'titles', TitleViewSet, basename='titles')
+router.register('reviews', ReviewViewSet, basename='reviews')
+router.register(r'reviews/(?P<review_id>\d+)/comments', CommentViewSet,
+                   basename='comments')
 
 auth_urls = [
     path('signup/', SignupViewSet.as_view({'post': 'create'}), name='signup'),

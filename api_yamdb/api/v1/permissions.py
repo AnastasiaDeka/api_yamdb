@@ -1,6 +1,7 @@
 from rest_framework import permissions
 from users.models import User
 
+
 class IsSuperUserOrAdmin(permissions.BasePermission):
     """
     Доступ только для суперпользователей или администраторов.
@@ -20,7 +21,7 @@ class IsAdminModeratorAuthor(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         return request.user.is_authenticated and (
             request.user.is_superuser
-            or request.user.role in [User.Role.ADMIN, User.Role.MODERATOR]
+            or request.user.role in ['admin', 'moderator']
             or obj.author == request.user
         )
 
@@ -32,3 +33,15 @@ class ReadOnlyForAnon(permissions.BasePermission):
 
     def has_permission(self, request, view):
         return request.method in permissions.SAFE_METHODS or request.user.is_authenticated
+
+
+class IsAdminOrReadOnly(permissions.BasePermission):
+    """
+    Доступ только для администраторов на изменение.
+    """
+
+    def has_permission(self, request, view):
+        return (
+            request.method in permissions.SAFE_METHODS
+            or IsSuperUserOrAdmin().has_permission(request, view)
+        )

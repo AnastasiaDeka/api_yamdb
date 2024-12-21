@@ -12,6 +12,7 @@ from users.models import User
 
 from reviews.models import Comment, Review, Category, Genre, Title
 
+
 class UserCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для регистрации пользователя."""
 
@@ -51,7 +52,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name', 'last_name', 'bio', 'role')
+        fields = ('username', 'email', 'first_name',
+                  'last_name', 'bio', 'role')
 
 
 class UserActivateSerializer(serializers.Serializer):
@@ -94,7 +96,7 @@ class CategorySerializer(CategoryGenreBaseSerializer):
 
     class Meta:
         model = Category
-        fields = '__all__'
+        fields = ('name', 'slug')
 
 
 class GenreSerializer(CategoryGenreBaseSerializer):
@@ -102,7 +104,7 @@ class GenreSerializer(CategoryGenreBaseSerializer):
 
     class Meta:
         model = Genre
-        fields = '__all__'
+        fields = ('name', 'slug')
 
 
 class TitleSerializer(BaseSerializer):
@@ -118,7 +120,7 @@ class TitleSerializer(BaseSerializer):
         current_year = datetime.now().year
         if value > current_year:
             raise ValidationError('Некорректный год')
-        
+
         return value
 
     class Meta:
@@ -132,7 +134,6 @@ class TitleSerializer(BaseSerializer):
             'genre',
             'category'
         )
-
 
 
 class ReviewSerializer(serializers.ModelSerializer):

@@ -14,13 +14,12 @@ from rest_framework.decorators import action
 from reviews.models import Category, Genre, Title, Review
 from .serializers import (
     UserCreateSerializer, UserRecieveTokenSerializer, UserSerializer,
-    CategorySerializer, GenreSerializer, TitleSerializer, 
+    CategorySerializer, GenreSerializer, TitleSerializer,
     ReviewSerializer, CommentSerializer
 )
 from .permissions import IsSuperUserOrAdmin, IsAdminOrReadOnly, IsAdminModeratorAuthor, ReadOnlyForAnon
 from .utils import send_email
 
-from .permissions import IsSuperUserOrAdmin, IsAdminOrReadOnly
 User = get_user_model()
 
 
@@ -45,7 +44,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         """Устанавливает разрешения для разных действий."""
-        permission_classes = self.action_permissions.get(self.action, [permissions.IsAdminUser])
+        permission_classes = self.action_permissions.get(
+            self.action, [permissions.IsAdminUser])
         return [permission() for permission in permission_classes]
 
     @action(
@@ -61,9 +61,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
         if request.method == 'DELETE':
             return Response(
-            {"detail": "DELETE method is not allowed."},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+                {"detail": "DELETE method is not allowed."},
+                status=status.HTTP_405_METHOD_NOT_ALLOWED
+            )
 
         if request.method == 'PATCH':
             if request.user != user:
@@ -87,7 +87,6 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-
 class SignupViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):
     """Вьюсет для регистрации пользователей."""
 
@@ -102,8 +101,9 @@ class SignupViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):
         username = serializer.validated_data['username']
         email = serializer.validated_data['email']
 
-        user, created = User.objects.get_or_create(username=username, email=email)
-        
+        user, created = User.objects.get_or_create(
+            username=username, email=email)
+
         if not created:
             if not user.confirmation_code:
                 user.confirmation_code = str(uuid.uuid4())
@@ -196,6 +196,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     search_fields = ('name', 'category', 'genre', 'year')
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
+    lookup_field = 'slug'
 
 
 class CategoryGenreBaseViewSet(viewsets.GenericViewSet,

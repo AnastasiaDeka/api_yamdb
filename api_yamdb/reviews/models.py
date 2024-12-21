@@ -6,7 +6,6 @@ from users.models import User
 User = get_user_model()
 
 
-
 class BaseModel(models.Model):
     """Базовая модель для моделей жанра и категории"""
     name = models.CharField(max_length=255)
@@ -17,7 +16,7 @@ class BaseModel(models.Model):
 
     class Meta:
         """Мета класс для базовой модели"""
-        ordering = ['-name']
+        ordering = ['id']
         constraints = [
             models.UniqueConstraint(
                 fields=['name', 'slug'], name='unique_name_slug')
@@ -47,7 +46,7 @@ class Title(models.Model):
 
     class Meta:
         """Мета класс для модели Title"""
-        ordering = ['-id']
+        ordering = ['id']
 
 
 class TitleGenre(models.Model):
@@ -80,7 +79,6 @@ class Review(models.Model):
 
     def __str__(self):
         return self.text
-
 
 
 class Comment(models.Model):

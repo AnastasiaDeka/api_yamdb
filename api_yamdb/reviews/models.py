@@ -6,6 +6,7 @@ from users.models import User
 User = get_user_model()
 
 
+
 class BaseModel(models.Model):
     """Базовая модель для моделей жанра и категории"""
     name = models.CharField(max_length=255)

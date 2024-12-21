@@ -1,4 +1,3 @@
-from rest_framework import viewsets, permissions, status, mixins
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Avg
@@ -8,11 +7,18 @@ from rest_framework import viewsets, permissions, status, mixins, filters
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.filters import SearchFilter
+from rest_framework.decorators import action
+
+from reviews.models import Category, Genre, Title, Review
 from .serializers import (
     UserCreateSerializer, UserRecieveTokenSerializer, UserSerializer,
-    CommentSerializer, ReviewSerializer
+    CategorySerializer, GenreSerializer, TitleSerializer, 
+    ReviewSerializer, CommentSerializer
 )
-from .permissions import IsSuperUserOrAdmin
+from .permissions import IsSuperUserOrAdmin, IsAdminOrReadOnly, IsAdminModeratorAuthor, ReadOnlyForAnon
+from .utils import send_email
 
 from .permissions import IsSuperUserOrAdmin, IsAdminOrReadOnly
 User = get_user_model()
@@ -93,8 +99,8 @@ class SignupViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):
         serializer = UserCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        if User.objects.filter(username=serializer.validated_data['username']).exists():
-            raise ValidationError("Пользователь с таким именем уже существует.")
+        username = serializer.validated_data['username']
+        email = serializer.validated_data['email']
 
         user, created = User.objects.get_or_create(username=username, email=email)
         
@@ -183,34 +189,8 @@ class ActivateAccountViewSet(viewsets.GenericViewSet):
         )
 
 
-class CategoryGenreBaseViewSet(viewsets.GenericViewSet,
-                               mixins.CreateModelMixin,
-                               mixins.DestroyModelMixin,
-                               mixins.ListModelMixin):
-    """Базовый вьюсет для категорий и жанров."""
-
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
-
-
-class CategoryViewSet(CategoryGenreBaseViewSet):
-    """Вьюсет для управления категориями."""
-
-    serializer_class = CategorySerializer
-    queryset = Category.objects.all()
-
-
-class GenreViewSet(CategoryGenreBaseViewSet):
-    """Вьюсет для управления жанрами."""
-
-    serializer_class = GenreSerializer
-    queryset = Genre.objects.all()
-
-
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для управления произведениями."""
-
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name', 'category', 'genre', 'year')
@@ -241,16 +221,6 @@ class GenreViewSet(CategoryGenreBaseViewSet):
 
     serializer_class = GenreSerializer
     queryset = Genre.objects.all()
-
-
-class TitleViewSet(viewsets.ModelViewSet):
-    """Вьюсет для управления произведениями."""
-
-    permission_classes = (ReadOnlyForAnon,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name', 'category', 'genre', 'year')
-    queryset = Title.objects.all()
-    serializer_class = TitleSerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):

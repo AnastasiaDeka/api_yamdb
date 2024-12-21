@@ -10,6 +10,7 @@ from .views import (
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='users')
 router.register(r'signup', SignupViewSet, basename='signup')
+
 router.register(r'auth/token',
                 TokenObtainViewSet, basename='token')
 router.register(r'resend_confirmation_code',
@@ -20,6 +21,9 @@ router.register(r'activate_account',
 router.register(r'categories', CategoryViewSet, basename='categories')
 router.register(r'genres', GenreViewSet, basename='genres')
 router.register(r'titles', TitleViewSet, basename='titles')
+router.register('reviews', ReviewViewSet, basename='reviews')
+router.register(r'reviews/(?P<review_id>\d+)/comments', CommentViewSet,
+                   basename='comments')
 
 
 auth_urls = [

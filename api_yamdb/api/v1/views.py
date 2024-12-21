@@ -20,6 +20,7 @@ from .serializers import (
 from .permissions import IsSuperUserOrAdmin, IsAdminOrReadOnly, IsAdminModeratorAuthor, ReadOnlyForAnon
 from .utils import send_email
 
+from .permissions import IsSuperUserOrAdmin, IsAdminOrReadOnly
 User = get_user_model()
 
 
@@ -188,6 +189,15 @@ class ActivateAccountViewSet(viewsets.GenericViewSet):
         )
 
 
+class TitleViewSet(viewsets.ModelViewSet):
+    """Вьюсет для управления произведениями."""
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name', 'category', 'genre', 'year')
+    queryset = Title.objects.all()
+    serializer_class = TitleSerializer
+
+
 class CategoryGenreBaseViewSet(viewsets.GenericViewSet,
                                mixins.CreateModelMixin,
                                mixins.DestroyModelMixin,
@@ -211,16 +221,6 @@ class GenreViewSet(CategoryGenreBaseViewSet):
 
     serializer_class = GenreSerializer
     queryset = Genre.objects.all()
-
-
-class TitleViewSet(viewsets.ModelViewSet):
-    """Вьюсет для управления произведениями."""
-
-    permission_classes = (ReadOnlyForAnon,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name', 'category', 'genre', 'year')
-    queryset = Title.objects.all()
-    serializer_class = TitleSerializer
 
 
 class ReviewViewSet(viewsets.ModelViewSet):

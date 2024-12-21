@@ -10,6 +10,8 @@ from reviews.models import Category, Genre, Title, Comment, Review
 
 from users.models import User
 
+from reviews.models import Comment, Review, Category, Genre, Title
+
 class UserCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для регистрации пользователя."""
 
@@ -130,6 +132,7 @@ class TitleSerializer(BaseSerializer):
             'genre',
             'category'
         )
+
 
 
 class ReviewSerializer(serializers.ModelSerializer):

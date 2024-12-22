@@ -1,5 +1,5 @@
 from rest_framework import permissions
-from users.models import User
+from users.models import UserRole
 
 
 class IsSuperUserOrAdmin(permissions.BasePermission):
@@ -10,7 +10,16 @@ class IsSuperUserOrAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         if not request.user.is_authenticated:
             return False
-        return request.user.is_superuser or request.user.role == User.Role.ADMIN
+        return request.user.is_superuser or request.user.role == UserRole.ADMIN
+
+
+class IsAdminUserOnly(permissions.BasePermission):
+    """
+    Разрешает доступ только администраторам.
+    """
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.is_staff
+
 
 
 class IsAdminModeratorAuthor(permissions.BasePermission):

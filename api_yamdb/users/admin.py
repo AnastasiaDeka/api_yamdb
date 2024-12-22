@@ -5,8 +5,11 @@ from .models import User
 class UserAdmin(admin.ModelAdmin):
     """Настройка админки для модели User."""
 
-    list_display = ('pk', 'username', 'email', 'first_name', 'last_name', 'role', 'bio')
-    search_fields = ('username', 'email', 'first_name', 'last_name', 'role')
+    list_display = ('pk','username',
+                    'email', 'first_name',
+                    'last_name', 'role', 'bio')
+    search_fields = ('username', 'email',
+                     'first_name', 'last_name', 'role')
     list_filter = ('role',)
     list_editable = ('role',)
     empty_value_display = 'Значение отсутствует'
@@ -14,12 +17,17 @@ class UserAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
-        ('Персональная информация', {'fields': ('first_name', 'last_name', 'email', 'bio')}),
+        ('Персональная информация', {'fields': ('first_name',
+                                                'last_name',
+                                                'email', 'bio')}),
         ('Роли', {'fields': ('role',)}),
     )
     add_fieldsets = (
-        (None, {'fields': ('username', 'password1', 'password2')}),
-        ('Персональная информация', {'fields': ('first_name', 'last_name', 'email', 'bio')}),
+        (None, {'fields': ('username',
+                           'password1', 'password2')}),
+        ('Персональная информация', {'fields': ('first_name',
+                                                'last_name',
+                                                'email', 'bio')}),
         ('Роли', {'fields': ('role',)}),
     )
 

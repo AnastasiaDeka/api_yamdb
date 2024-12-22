@@ -2,179 +2,145 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Avg
 from django.contrib.auth.tokens import default_token_generator
-
 from rest_framework import viewsets, permissions, status, mixins, filters
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import AccessToken
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from rest_framework.filters import SearchFilter
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
+from datetime import timedelta
 
+from users.models import User
 from reviews.models import Category, Genre, Title, Review
 from .serializers import (
     UserCreateSerializer, UserRecieveTokenSerializer, UserSerializer,
-    CategorySerializer, GenreSerializer, TitleSerializer, 
-    ReviewSerializer, CommentSerializer
+    CategorySerializer, GenreSerializer, TitleSerializer,
+    ReviewSerializer, CommentSerializer, UserMeSerializer
 )
-from .permissions import IsSuperUserOrAdmin, IsAdminOrReadOnly, IsAdminModeratorAuthor, ReadOnlyForAnon
+from .permissions import (
+    IsSuperUserOrAdmin, IsAdminOrReadOnly, IsAdminModeratorAuthor,
+    ReadOnlyForAnon
+)
 from .utils import send_email
 
-from .permissions import IsSuperUserOrAdmin, IsAdminOrReadOnly
+
 User = get_user_model()
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    """Вьюсет для управления пользователями."""
-
-    serializer_class = UserSerializer
+    """Управление пользователями."""
     queryset = User.objects.all()
-    lookup_field = "username"
-    filter_backends = [SearchFilter]
-    search_fields = ["username"]
+    serializer_class = UserSerializer
+    permission_classes = (IsAuthenticated, IsSuperUserOrAdmin)
+    lookup_field = 'username'
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('username',)
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
-    action_permissions = {
-        'list': [permissions.IsAdminUser],
-        'retrieve': [permissions.IsAuthenticated],
-        'create': [permissions.IsAuthenticated],
-        'get_me_data': [permissions.IsAuthenticated],
-        'update': [permissions.IsAdminUser],
-        'partial_update': [permissions.IsAdminUser],
-        'destroy': [permissions.IsAdminUser],
-    }
-
-    def get_permissions(self):
-        """Устанавливает разрешения для разных действий."""
-        permission_classes = self.action_permissions.get(self.action, [permissions.IsAdminUser])
-        return [permission() for permission in permission_classes]
+    def update(self, request, *args, **kwargs):
+        """Запрещает PUT метод."""
+        if request.method == 'PUT':
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return super().update(request, *args, **kwargs)
 
     @action(
-        detail=False,
-        methods=['get', 'patch', 'delete'],
-        url_path='me',
-        url_name='me',
-        permission_classes=[permissions.IsAuthenticated]
+        methods=['get', 'patch'], detail=False,
+        url_path='me', permission_classes=(IsAuthenticated,)
     )
     def get_me_data(self, request):
-        """Позволяет пользователю получить и обновить информацию о себе."""
+        """Получение и обновление данных текущего пользователя."""
         user = request.user
-
-        if request.method == 'DELETE':
-            return Response(
-            {"detail": "DELETE method is not allowed."},
-            status=status.HTTP_405_METHOD_NOT_ALLOWED
-        )
-
         if request.method == 'PATCH':
-            if request.user != user:
-                return Response(
-                    {"detail": "You can only update your own data."},
-                    status=status.HTTP_403_FORBIDDEN
+            if user.is_superuser:
+                serializer = UserSerializer(
+                    user, data=request.data, partial=True
                 )
-            return self.update_user_data(user, request.data)
+            else:
+                serializer = UserMeSerializer(
+                    user, data=request.data, partial=True
+                )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data,
+                            status=status.HTTP_200_OK)
 
         serializer = self.get_serializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def update_user_data(self, user, data):
-        """Обновление данных пользователя."""
-        serializer = self.get_serializer(
-            user, data=data, partial=True, context={'request': self.request}
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save(role=user.role)
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data,
+                        status=status.HTTP_200_OK)
 
 
-
-class SignupViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):
-    """Вьюсет для регистрации пользователей."""
-
+class UserConfirmationViewSet(viewsets.GenericViewSet,
+                              mixins.CreateModelMixin):
+    """Создание пользователя и повторная отправка кода подтверждения."""
     serializer_class = UserCreateSerializer
-    permission_classes = (permissions.AllowAny,)
 
     def create(self, request, *args, **kwargs):
-        """Создает объект пользователя и отправляет код подтверждения."""
-        serializer = UserCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        """Создает пользователя или отправляет код повторно."""
+        required_fields = ['username', 'email']
+        missing_fields = {
+            field: [f"Поле '{field}' обязательно для заполнения."]
+            for field in required_fields if not request.data.get(field)
+        }
+        if missing_fields:
+            return Response(missing_fields, status=status.HTTP_400_BAD_REQUEST)
 
-        username = serializer.validated_data['username']
-        email = serializer.validated_data['email']
+        username = request.data.get('username')
+        email = request.data.get('email')
 
-        user, created = User.objects.get_or_create(username=username, email=email)
-        
-        if not created:
-            if not user.confirmation_code:
-                user.confirmation_code = str(uuid.uuid4())
-                user.save()
-            send_email(user, email_type='confirmation')
+        existing_user = User.objects.filter(username=username,
+                                            email=email).first()
+        if existing_user:
+            send_email(existing_user, email_type='confirmation')
             return Response(
-                {"message": "Код подтверждения отправлен повторно."},
+                {'username': existing_user.username, 'email': existing_user.email},
                 status=status.HTTP_200_OK
             )
 
-        send_email(user, email_type='confirmation')
+        response = super().create(request, *args, **kwargs)
+        new_user = User.objects.get(username=username, email=email)
+        send_email(new_user, email_type='confirmation')
+        response.status_code = status.HTTP_200_OK
+        return response
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
-
-class TokenObtainViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):
-    """Вьюсет для получения токена аутентификации."""
-
+class TokenObtainViewSet(viewsets.GenericViewSet,
+                         mixins.CreateModelMixin):
+    """Получение токена аутентификации."""
     serializer_class = UserRecieveTokenSerializer
     permission_classes = (permissions.AllowAny,)
 
     def create(self, request, *args, **kwargs):
-        """Предоставляет пользователю JWT токен по коду подтверждения."""
+        """Выдает JWT токен по коду подтверждения."""
         serializer = UserRecieveTokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
 
         username = serializer.validated_data.get('username')
         confirmation_code = serializer.validated_data.get('confirmation_code')
 
         user = get_object_or_404(User, username=username)
 
-        if not default_token_generator.check_token(user, confirmation_code):
+        if not default_token_generator.check_token(user,
+                                                   confirmation_code):
             message = {'confirmation_code': 'Код подтверждения невалиден'}
-            return Response(message, status=status.HTTP_400_BAD_REQUEST)
+            return Response(message,
+                            status=status.HTTP_400_BAD_REQUEST)
 
-        message = {'token': str(AccessToken.for_user(user))}
-        return Response(message, status=status.HTTP_200_OK)
-
-
-class ResendConfirmationCodeViewSet(viewsets.GenericViewSet,
-                                    mixins.CreateModelMixin):
-    """Вьюсет для повторной отправки кода подтверждения на email."""
-
-    serializer_class = UserRecieveTokenSerializer
-    permission_classes = (permissions.AllowAny,)
-
-    def create(self, request, *args, **kwargs):
-        """Отправка повторного кода подтверждения."""
-        serializer = UserRecieveTokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        username = serializer.validated_data.get('username')
-
-        user = get_object_or_404(User, username=username)
-
-        send_confirmation_email(user)
-
-        return Response(
-            {'message': 'Код подтверждения отправлен на email.'},
-            status=status.HTTP_201_OK
-        )
+        token = AccessToken.for_user(user)
+        message = {'token': str(token)}
+        return Response(message,
+                        status=status.HTTP_200_OK)
 
 
 class ActivateAccountViewSet(viewsets.GenericViewSet):
-    """Вьюсет для активации учетной записи через email."""
-
+    """Активация аккаунта через email."""
     serializer_class = UserRecieveTokenSerializer
     permission_classes = (permissions.AllowAny,)
 
     def create(self, request, *args, **kwargs):
-        """Отправка ссылки для активации учетной записи на email."""
+        """Отправка ссылки для активации аккаунта на email."""
         serializer = UserRecieveTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -184,7 +150,7 @@ class ActivateAccountViewSet(viewsets.GenericViewSet):
         send_confirmation_email(user, email_type='activation')
 
         return Response(
-            {'message': 'Ссылка для активации учетной записи отправлена на email.'},
+            {'message': 'Ссылка для активации отправлена на email.'},
             status=status.HTTP_200_OK
         )
 

@@ -227,11 +227,20 @@ class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = (
-        IsAdminModeratorAuthor, ReadOnlyForAnon,
+        IsAdminOrReadOnly, ReadOnlyForAnon,
     )
 
+    def get_title(self):
+        title_id = self.kwargs.get("title_id")
+        return get_object_or_404(Title, pk=title_id)
+
+    def get_queryset(self):
+        title = self.get_title()
+        return title.reviews.all()
+    
     def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+        title = self.get_title()
+        serializer.save(author=self.request.user, title=title)
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset().annotate(avg_score=Avg('score'))

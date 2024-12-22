@@ -139,7 +139,8 @@ class ReviewSerializer(serializers.ModelSerializer):
     """Сериализатор для ревью."""
 
     class Meta:
-        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        fields = ('id', 'author', 'text', 'score', 'pub_date')
+        read_only_fields = ('author',)
         model = Review
 
 
@@ -148,4 +149,5 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         fields = ('id', 'author', 'created', 'review', 'text')
+        read_only_fields = ('author', 'review',)
         model = Comment

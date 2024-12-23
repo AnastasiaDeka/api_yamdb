@@ -193,7 +193,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     permission_classes = (
-        IsAdminOrReadOnly, ReadOnlyForAnon,
+        IsAdminModeratorAuthor, ReadOnlyForAnon,
     )
 
     def get_title(self):
@@ -204,20 +204,23 @@ class ReviewViewSet(viewsets.ModelViewSet):
         title = self.get_title()
         return title.reviews.all()
     
+    def rating(self, request, *args, **kwargs):
+        title = self.get_title()
+        reviews = Review.objects.filter(title=title)
+
+        if reviews.exists():
+            average_rating = reviews.aggregate(Avg('score'))['score__avg'] or 0  # 0, если оAverage Rating is None
+        else:
+            average_rating = title.rating
+
+        title.rating = average_rating
+        title.save()
+
+    
     def perform_create(self, serializer):
         title = self.get_title()
         serializer.save(author=self.request.user, title=title)
-
-   def raiting(self, request, *args, **kwargs):
-        title = self.get_title()
-        average_score = Review.objects.filter(title=title).aggregate(avg_score=Avg('score'))['avg_score']
-    
-        if average_score is not None:
-            title.rating = round(average_score)   # округляем до целого
-            title.save()
-    
-        serializer = self.get_serializer(title)
-        return Response(serializer.data)
+        self.rating(self.request, title.id)
 
 
 class CommentViewSet(viewsets.ModelViewSet):

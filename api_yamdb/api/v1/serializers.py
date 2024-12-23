@@ -1,16 +1,16 @@
 import re
+import uuid
 from datetime import datetime
 
 from rest_framework.exceptions import ValidationError
-from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
+from django.core.validators import RegexValidator
+from django.db import IntegrityError
 
 from reviews.models import Category, Genre, Title, Comment, Review
-
 from users.models import User
 
-from reviews.models import Comment, Review, Category, Genre, Title
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -18,27 +18,36 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'role']
-        extra_kwargs = {
-            'password': {'write_only': True, 'required': False}
-        }
-
-    def validate_username(self, value):
-        """Проверка запрета на 'me'."""
-        if value.lower() == 'me':
-            raise ValidationError("Username 'me' использовать нельзя.")
-        return value
+        fields = ['username', 'email']
 
     def create(self, validated_data):
-        """Создание пользователя."""
-        password = validated_data.pop('password', None)
-        user = User(**validated_data)
-        if password:
-            user.set_password(password)
-        else:
-            user.set_unusable_password()
-        user.save()
+        """Создание пользователя или обновление кода подтверждения."""
+        user = User.objects.filter(username=validated_data['username'],
+                                   email=validated_data['email']).first()
+        
+        if user:
+            user.confirmation_code = str(uuid.uuid4())
+            user.save()
+            return user
+        
+        if User.objects.filter(email=validated_data['email']).exists():
+            raise serializers.ValidationError({
+                'email': ['Пользователь с таким E-mail уже существует.']
+            })
+        
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            password=None
+        )
+        user.set_unusable_password()
         return user
+
+    def validate_username(self, value):
+        """Проверка имени пользователя на недопустимые значения."""
+        if value.lower() == 'me':
+            raise serializers.ValidationError('Имя пользователя "me" недопустимо.')
+        return value
 
 
 class UserRecieveTokenSerializer(serializers.Serializer):
@@ -47,9 +56,37 @@ class UserRecieveTokenSerializer(serializers.Serializer):
     confirmation_code = serializers.CharField(max_length=200)
 
 
+class UserMeSerializer(serializers.ModelSerializer):
+    """Сериализатор для работы с данными текущего пользователя."""
+    username = serializers.CharField(
+        max_length=150,
+        validators=[
+            RegexValidator(
+                regex=r'^[\w.@+-]+\Z',
+                message='Имя пользователя содержит недопустимые символы.',
+                code='invalid_username'
+            )
+        ]
+    )
+    email = serializers.EmailField(
+        max_length=254,
+        error_messages={
+            'max_length': 'E-mail не может быть длиннее 254 символов.'
+        }
+    )
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name',
+                  'last_name', 'bio')
+        extra_kwargs = {
+            'username': {'read_only': True},
+            'email': {'read_only': True}
+        }
+
+
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для отображения данных пользователя."""
-
     class Meta:
         model = User
         fields = ('username', 'email', 'first_name',
@@ -140,7 +177,8 @@ class ReviewSerializer(serializers.ModelSerializer):
     """Сериализатор для ревью."""
 
     class Meta:
-        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        fields = ('id', 'author', 'text', 'score', 'pub_date')
+        read_only_fields = ('author',)
         model = Review
 
 
@@ -149,4 +187,5 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         fields = ('id', 'author', 'created', 'review', 'text')
+        read_only_fields = ('author', 'review',)
         model = Comment

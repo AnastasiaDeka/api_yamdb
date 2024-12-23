@@ -80,6 +80,9 @@ class Review(models.Model):
     )
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['author', 'title'], name='unique_review_per_title')
+        ]
         default_related_name = 'reviews'
 
     def __str__(self):

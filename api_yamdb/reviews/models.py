@@ -35,7 +35,7 @@ class Title(models.Model):
     """Модель произведения"""
     name = models.CharField(max_length=200)
     year = models.IntegerField()
-    rating = models.IntegerField()
+    rating = models.IntegerField(null=True)
     description = models.TextField()
     genre = models.ManyToManyField(Genre, through='TitleGenre')
     category = models.ForeignKey(

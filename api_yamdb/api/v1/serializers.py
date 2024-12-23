@@ -1,12 +1,12 @@
+"""Модуль сериализаторов для API."""
+
 import re
 import uuid
 from datetime import datetime
 
 from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
 from django.core.validators import RegexValidator
-from django.db import IntegrityError
 
 from reviews.models import Category, Genre, Title, Comment, Review
 from users.models import User
@@ -16,6 +16,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для регистрации пользователя."""
 
     class Meta:
+        """Определяет модель и поля, которые будут сериализованы."""
+
         model = User
         fields = ['username', 'email']
 
@@ -23,17 +25,17 @@ class UserCreateSerializer(serializers.ModelSerializer):
         """Создание пользователя или обновление кода подтверждения."""
         user = User.objects.filter(username=validated_data['username'],
                                    email=validated_data['email']).first()
-        
+
         if user:
             user.confirmation_code = str(uuid.uuid4())
             user.save()
             return user
-        
+
         if User.objects.filter(email=validated_data['email']).exists():
             raise serializers.ValidationError({
                 'email': ['Пользователь с таким E-mail уже существует.']
             })
-        
+
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
@@ -51,12 +53,14 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 class UserRecieveTokenSerializer(serializers.Serializer):
     """Сериализатор для получения токена по коду подтверждения."""
+
     username = serializers.CharField(max_length=150)
     confirmation_code = serializers.CharField(max_length=200)
 
 
 class UserMeSerializer(serializers.ModelSerializer):
     """Сериализатор для работы с данными текущего пользователя."""
+
     username = serializers.CharField(
         max_length=150,
         validators=[
@@ -75,6 +79,8 @@ class UserMeSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
+        """Определяет модель и поля, которые будут сериализованы."""
+
         model = User
         fields = ('username', 'email', 'first_name',
                   'last_name', 'bio')
@@ -86,7 +92,10 @@ class UserMeSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для отображения данных пользователя."""
+
     class Meta:
+        """Определяет модель и поля, которые будут сериализованы."""
+
         model = User
         fields = ('username', 'email', 'first_name',
                   'last_name', 'bio', 'role')
@@ -94,12 +103,14 @@ class UserSerializer(serializers.ModelSerializer):
 
 class UserActivateSerializer(serializers.Serializer):
     """Сериализатор для активации учетной записи через email."""
+
     username = serializers.CharField(max_length=150)
     confirmation_code = serializers.CharField(max_length=200)
 
 
 class BaseSerializer(serializers.ModelSerializer):
     """Базовый сериализатор для произведений, категорий и жанров."""
+
     name = serializers.CharField(required=True)
 
     def validate_name(self, value):
@@ -112,6 +123,7 @@ class BaseSerializer(serializers.ModelSerializer):
 
 class CategoryGenreBaseSerializer(BaseSerializer):
     """Базовый сериализатор для категорий и жанров."""
+
     slug = serializers.SlugField(required=True)
 
     def validate_slug(self, value):
@@ -145,6 +157,7 @@ class GenreSerializer(CategoryGenreBaseSerializer):
 
 class TitleSerializer(BaseSerializer):
     """Сериализатор для произведений."""
+
     genre = serializers.SlugRelatedField(
         many=True, queryset=Genre.objects.all(), slug_field='slug', required=True
     )

@@ -1,3 +1,5 @@
+"""Утилиты для работы с email в проекте."""
+
 import uuid
 from django.core.mail import send_mail
 from itsdangerous import URLSafeTimedSerializer
@@ -5,19 +7,18 @@ from django.conf import settings
 
 serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
 
-def send_email(user, email_type='confirmation', activation_link=None):
-    """
-    Отправка email с кодом подтверждения или ссылкой активации.
-    """
 
+def send_email(user, email_type='confirmation',
+               activation_link=None):
+    """Отправка email с кодом подтверждения или ссылкой активации."""
     if email_type == 'confirmation':
         if not user.confirmation_code:
             user.confirmation_code = str(uuid.uuid4())
         user.save()
-        
+
         subject = 'Ваш код подтверждения'
         message = f'Ваш код: {user.confirmation_code}'
-    
+
     elif email_type == 'activation':
         activation_token = serializer.dumps({'username': user.username},
                                             salt='activation')

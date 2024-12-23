@@ -1,15 +1,14 @@
+"""API views для платформы Yamdb."""
+
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Avg
-from django.contrib.auth.tokens import default_token_generator
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, permissions, status, mixins, filters
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
-from datetime import timedelta
 
 from .filters import TitleFilter
 from users.models import User
@@ -30,6 +29,7 @@ User = get_user_model()
 
 class UserViewSet(viewsets.ModelViewSet):
     """Управление пользователями."""
+
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (IsAuthenticated, IsSuperUserOrAdmin)
@@ -73,6 +73,7 @@ class UserViewSet(viewsets.ModelViewSet):
 class UserConfirmationViewSet(viewsets.GenericViewSet,
                               mixins.CreateModelMixin):
     """Создание пользователя и повторная отправка кода подтверждения."""
+
     serializer_class = UserCreateSerializer
 
     def create(self, request, *args, **kwargs):
@@ -93,7 +94,8 @@ class UserConfirmationViewSet(viewsets.GenericViewSet,
         if existing_user:
             send_email(existing_user, email_type='confirmation')
             return Response(
-                {'username': existing_user.username, 'email': existing_user.email},
+                {'username': existing_user.username,
+                 'email': existing_user.email},
                 status=status.HTTP_200_OK
             )
 
@@ -107,6 +109,7 @@ class UserConfirmationViewSet(viewsets.GenericViewSet,
 class TokenObtainViewSet(viewsets.GenericViewSet,
                          mixins.CreateModelMixin):
     """Получение токена аутентификации."""
+
     serializer_class = UserRecieveTokenSerializer
     permission_classes = (permissions.AllowAny,)
 
@@ -123,8 +126,6 @@ class TokenObtainViewSet(viewsets.GenericViewSet,
 
         user = get_object_or_404(User, username=username)
 
-        # if not default_token_generator.check_token(user,
-        #                                            confirmation_code):
         if not user.confirmation_code == confirmation_code:
             message = {'confirmation_code': 'Код подтверждения невалиден'}
             return Response(message,
@@ -138,6 +139,7 @@ class TokenObtainViewSet(viewsets.GenericViewSet,
 
 class ActivateAccountViewSet(viewsets.GenericViewSet):
     """Активация аккаунта через email."""
+
     serializer_class = UserRecieveTokenSerializer
     permission_classes = (permissions.AllowAny,)
 
@@ -149,7 +151,7 @@ class ActivateAccountViewSet(viewsets.GenericViewSet):
         username = serializer.validated_data.get('username')
         user = get_object_or_404(User, username=username)
 
-        send_confirmation_email(user, email_type='activation')
+        send_email(user, email_type='activation')
 
         return Response(
             {'message': 'Ссылка для активации отправлена на email.'},
@@ -159,6 +161,7 @@ class ActivateAccountViewSet(viewsets.GenericViewSet):
 
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для управления произведениями."""
+
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     filterset_class = TitleFilter

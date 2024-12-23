@@ -23,7 +23,6 @@ from .permissions import (
 )
 from .utils import send_email
 
-
 User = get_user_model()
 
 
@@ -162,6 +161,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     search_fields = ('name', 'category', 'genre', 'year')
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
+    lookup_field = 'slug'
 
 
 class CategoryGenreBaseViewSet(viewsets.GenericViewSet,

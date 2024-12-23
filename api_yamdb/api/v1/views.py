@@ -208,9 +208,15 @@ class ReviewViewSet(viewsets.ModelViewSet):
         title = self.get_title()
         serializer.save(author=self.request.user, title=title)
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset().annotate(avg_score=Avg('score'))
-        serializer = self.get_serializer(queryset, many=True)
+   def raiting(self, request, *args, **kwargs):
+        title = self.get_title()
+        average_score = Review.objects.filter(title=title).aggregate(avg_score=Avg('score'))['avg_score']
+    
+        if average_score is not None:
+            title.rating = round(average_score)   # округляем до целого
+            title.save()
+    
+        serializer = self.get_serializer(title)
         return Response(serializer.data)
 
 

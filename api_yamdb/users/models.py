@@ -65,6 +65,7 @@ class User(AbstractUser):
 
     class Meta:
         """Метаданные модели пользователя."""
+
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 
@@ -95,7 +96,7 @@ class User(AbstractUser):
         )
 
     def generate_new_confirmation_code(self):
-        """Генерирует новый код подтверждения"""
+        """Генерирует новый код подтверждения."""
         self.confirmation_code = str(uuid.uuid4())
         self.confirmation_code_expiry = timezone.now() + timedelta(minutes=15)
         self.save()

@@ -1,3 +1,5 @@
+"""Настройки проекта api_yamdb."""
+
 from pathlib import Path
 from datetime import timedelta
 

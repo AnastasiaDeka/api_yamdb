@@ -8,8 +8,8 @@ User = get_user_model()
 
 class BaseModel(models.Model):
     """Базовая модель для моделей жанра и категории"""
-    name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True, max_length=50)
+    name = models.CharField(max_length=255, default=None)
+    slug = models.SlugField(unique=True, max_length=50, default=None)
 
     def __str__(self):
         return self.name
@@ -17,9 +17,14 @@ class BaseModel(models.Model):
     class Meta:
         """Мета класс для базовой модели"""
         ordering = ['id']
-        constraints = [
+        abstract = True
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        cls._meta.constraints = [
             models.UniqueConstraint(
-                fields=['name', 'slug'], name='unique_name_slug')
+                fields=['name', 'slug'],
+                name=f'unique_{cls.__name__.lower()}_name_slug')
         ]
 
 

@@ -217,6 +217,20 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ('author',)
         model = Review
 
+    def validate_score(self, value):
+        if value < 1 or value > 10:
+            raise serializers.ValidationError("Score must be between 1 and 10.")
+        return value
+
+    def create(self, validated_data):
+        user = validated_data['author']
+        title = validated_data['title']
+
+        if Review.objects.filter(author=user, title=title).exists():
+            raise serializers.ValidationError('Вы уже оставили отзыв на этот title.')
+        
+        return super().create(validated_data)
+
 
 class CommentSerializer(serializers.ModelSerializer):
     """Сериализатор для комментариев к ревью."""

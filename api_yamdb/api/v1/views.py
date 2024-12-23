@@ -19,8 +19,7 @@ from .serializers import (
     ReviewSerializer, CommentSerializer, UserMeSerializer
 )
 from .permissions import (
-    IsSuperUserOrAdmin, IsAdminOrReadOnly, IsAdminModeratorAuthor,
-    ReadOnlyForAnon
+    IsSuperUserOrAdmin, IsAdminOrReadOnly, IsAdminModeratorAuthorOrReadOnly
 )
 from .utils import send_email
 
@@ -167,16 +166,12 @@ class TitleViewSet(viewsets.ModelViewSet):
     filterset_class = TitleFilter
     search_fields = ('name', 'year', 'category__slug', 'genre__slug')
     queryset = Title.objects.all()
+    http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return TitleListSerializer
         return TitleSerializer
-
-    def update(self, request, *args, **kwargs):
-        if request.method == 'PUT':
-            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        return super().update(request, *args, **kwargs)
 
 
 class CategoryGenreBaseViewSet(viewsets.GenericViewSet,
@@ -215,7 +210,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     http_method_names = ['get', 'post', 'patch', 'delete']
     permission_classes = (
-        permissions.IsAuthenticatedOrReadOnly, IsAdminModeratorAuthor,
+        permissions.IsAuthenticatedOrReadOnly, IsAdminModeratorAuthorOrReadOnly,
     )
 
     def get_title(self):
@@ -249,7 +244,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     http_method_names = ['get', 'post', 'patch', 'delete']
     permission_classes = (
-        permissions.IsAuthenticatedOrReadOnly, IsAdminModeratorAuthor,
+        permissions.IsAuthenticatedOrReadOnly, IsAdminModeratorAuthorOrReadOnly,
     )
 
     def get_review(self):

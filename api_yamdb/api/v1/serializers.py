@@ -4,13 +4,13 @@ import re
 import uuid
 from datetime import datetime
 
+from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
 from django.core.validators import RegexValidator
 
 from reviews.models import Category, Genre, Title, Comment, Review
 from users.models import User
-
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -48,7 +48,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def validate_username(self, value):
         """Проверка имени пользователя на недопустимые значения."""
         if value.lower() == 'me':
-            raise serializers.ValidationError('Имя пользователя "me" недопустимо.')
+            raise serializers.ValidationError(
+                'Имя пользователя "me" недопустимо.')
         return value
 
 
@@ -115,6 +116,8 @@ class BaseSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=True)
 
     def validate_name(self, value):
+        if not value:
+            raise serializers.ValidationError('Имя не может быть пустым')
         if len(value) > 256:
             raise serializers.ValidationError(
                 'Длина названия не должна превышать 256 символов'
@@ -156,21 +159,41 @@ class GenreSerializer(CategoryGenreBaseSerializer):
         fields = ('name', 'slug')
 
 
+class TitleListSerializer(BaseSerializer):
+    """Сериализатор для списка произведений."""
+    genre = GenreSerializer(many=True)
+    category = CategorySerializer()
+
+    class Meta:
+        model = Title
+        fields = (
+            'id',
+            'name',
+            'year',
+            'rating',
+            'description',
+            'genre',
+            'category'
+        )
+
+
 class TitleSerializer(BaseSerializer):
     """Сериализатор для произведений."""
 
     genre = serializers.SlugRelatedField(
-        many=True, queryset=Genre.objects.all(), slug_field='slug', required=True
+        many=True,
+        slug_field='slug',
+        queryset=Genre.objects.all()
     )
     category = serializers.SlugRelatedField(
-        queryset=Category.objects.all(), slug_field='slug', required=True
+        slug_field='slug',
+        queryset=Category.objects.all()
     )
 
     def validate_year(self, value):
         current_year = datetime.now().year
-        if value > current_year:
+        if not int(value) or value > current_year:
             raise ValidationError('Некорректный год')
-
         return value
 
     class Meta:

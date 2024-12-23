@@ -192,6 +192,7 @@ class GenreViewSet(CategoryGenreBaseViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
+    http_method_names = ['get', 'post', 'patch', 'delete']
     permission_classes = (
         IsAdminModeratorAuthor, ReadOnlyForAnon,
     )
@@ -225,6 +226,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
+    http_method_names = ['get', 'post', 'patch', 'delete']
     permission_classes = (
         IsAdminModeratorAuthor, ReadOnlyForAnon,
     )

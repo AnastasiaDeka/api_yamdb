@@ -12,7 +12,7 @@ class BaseModel(models.Model):
     slug = models.SlugField(unique=True, max_length=50, default=None)
 
     def __str__(self):
-        return self.name
+        return self.slug
 
     class Meta:
         """Мета класс для базовой модели"""
@@ -81,7 +81,8 @@ class Review(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['author', 'title'], name='unique_review_per_title')
+            models.UniqueConstraint(
+                fields=['author', 'title'], name='unique_review_per_title')
         ]
         default_related_name = 'reviews'
 

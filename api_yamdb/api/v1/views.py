@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Avg
 from django.contrib.auth.tokens import default_token_generator
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, permissions, status, mixins, filters
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
@@ -10,10 +11,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from datetime import timedelta
 
+from .filters import TitleFilter
 from users.models import User
 from reviews.models import Category, Genre, Title, Review
 from .serializers import (
-    UserCreateSerializer, UserRecieveTokenSerializer, UserSerializer,
+    TitleListSerializer, UserCreateSerializer, UserRecieveTokenSerializer, UserSerializer,
     CategorySerializer, GenreSerializer, TitleSerializer,
     ReviewSerializer, CommentSerializer, UserMeSerializer
 )
@@ -121,8 +123,9 @@ class TokenObtainViewSet(viewsets.GenericViewSet,
 
         user = get_object_or_404(User, username=username)
 
-        if not default_token_generator.check_token(user,
-                                                   confirmation_code):
+        # if not default_token_generator.check_token(user,
+        #                                            confirmation_code):
+        if not user.confirmation_code == confirmation_code:
             message = {'confirmation_code': 'Код подтверждения невалиден'}
             return Response(message,
                             status=status.HTTP_400_BAD_REQUEST)
@@ -157,11 +160,20 @@ class ActivateAccountViewSet(viewsets.GenericViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     """Вьюсет для управления произведениями."""
     permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name', 'category', 'genre', 'year')
+    filter_backends = (filters.SearchFilter, DjangoFilterBackend)
+    filterset_class = TitleFilter
+    search_fields = ('name', 'year', 'category__slug', 'genre__slug')
     queryset = Title.objects.all()
-    serializer_class = TitleSerializer
-    lookup_field = 'slug'
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return TitleListSerializer
+        return TitleSerializer
+
+    def update(self, request, *args, **kwargs):
+        if request.method == 'PUT':
+            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        return super().update(request, *args, **kwargs)
 
 
 class CategoryGenreBaseViewSet(viewsets.GenericViewSet,
@@ -173,6 +185,12 @@ class CategoryGenreBaseViewSet(viewsets.GenericViewSet,
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
+    lookup_field = 'slug'
+
+    def destroy(self, request, slug=None):
+        instance = get_object_or_404(self.queryset.model, slug=slug)
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CategoryViewSet(CategoryGenreBaseViewSet):
@@ -203,20 +221,20 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         title = self.get_title()
         return title.reviews.all()
-    
+
     def rating(self, request, *args, **kwargs):
         title = self.get_title()
         reviews = Review.objects.filter(title=title)
 
         if reviews.exists():
-            average_rating = reviews.aggregate(Avg('score'))['score__avg'] or 0  # 0, если оAverage Rating is None
+            # 0, если оAverage Rating is None
+            average_rating = reviews.aggregate(Avg('score'))['score__avg'] or 0
         else:
             average_rating = title.rating
 
         title.rating = average_rating
         title.save()
 
-    
     def perform_create(self, serializer):
         title = self.get_title()
         serializer.save(author=self.request.user, title=title)

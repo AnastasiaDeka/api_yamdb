@@ -8,6 +8,7 @@ from rest_framework import viewsets, permissions, status, mixins, filters
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import action
 
 from .filters import TitleFilter
@@ -212,6 +213,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly, IsAdminModeratorAuthorOrReadOnly,
     )
+    pagination_class = PageNumberPagination
 
     def get_title(self):
         title_id = self.kwargs.get("title_id")
@@ -246,6 +248,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly, IsAdminModeratorAuthorOrReadOnly,
     )
+    pagination_class = PageNumberPagination
 
     def get_review(self):
         review_id = self.kwargs.get("review_id")

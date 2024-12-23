@@ -212,6 +212,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly, IsAdminModeratorAuthorOrReadOnly,
     )
+    pagination_class = PageNumberPagination
 
     def get_title(self):
         title_id = self.kwargs.get("title_id")
@@ -246,6 +247,7 @@ class CommentViewSet(viewsets.ModelViewSet):
     permission_classes = (
         permissions.IsAuthenticatedOrReadOnly, IsAdminModeratorAuthorOrReadOnly,
     )
+    pagination_class = PageNumberPagination
 
     def get_review(self):
         review_id = self.kwargs.get("review_id")

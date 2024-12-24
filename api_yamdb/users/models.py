@@ -91,8 +91,8 @@ class User(AbstractUser):
     def is_confirmation_code_valid(self):
         """Проверяет, истек ли срок действия кода подтверждения."""
         return (
-            self.confirmation_code_expiry and
-            (self.confirmation_code_expiry > timezone.now())
+            self.confirmation_code_expiry
+            and (self.confirmation_code_expiry > timezone.now())
         )
 
     def generate_new_confirmation_code(self):

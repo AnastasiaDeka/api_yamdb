@@ -4,7 +4,6 @@ import re
 import uuid
 from datetime import datetime
 
-from django.shortcuts import get_object_or_404
 from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
 from django.core.validators import RegexValidator
@@ -116,6 +115,7 @@ class BaseSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=True)
 
     def validate_name(self, value):
+        """Проверяет корректность имени пользователя."""
         if not value:
             raise serializers.ValidationError('Имя не может быть пустым')
         if len(value) > 256:
@@ -131,6 +131,7 @@ class CategoryGenreBaseSerializer(BaseSerializer):
     slug = serializers.SlugField(required=True)
 
     def validate_slug(self, value):
+        """Проверяет корректность значения поля slug."""
         if not re.match(r'^[-a-zA-Z0-9_]+$', value):
             raise serializers.ValidationError(
                 'Слаг может содержать только латинские буквы, цифры, '
@@ -147,6 +148,8 @@ class CategorySerializer(CategoryGenreBaseSerializer):
     """Сериализатор для категорий."""
 
     class Meta:
+        """Определяет модель и поля, которые будут сериализованы."""
+
         model = Category
         fields = ('name', 'slug')
 
@@ -155,16 +158,21 @@ class GenreSerializer(CategoryGenreBaseSerializer):
     """Сериализатор для жанров."""
 
     class Meta:
+        """Определяет модель и поля, которые будут сериализованы."""
+
         model = Genre
         fields = ('name', 'slug')
 
 
 class TitleListSerializer(BaseSerializer):
     """Сериализатор для списка произведений."""
+
     genre = GenreSerializer(many=True)
     category = CategorySerializer()
 
     class Meta:
+        """Определяет модель и поля, которые будут сериализованы."""
+
         model = Title
         fields = (
             'id',
@@ -191,12 +199,15 @@ class TitleSerializer(BaseSerializer):
     )
 
     def validate_year(self, value):
+        """Валидация года выпуска произведений."""
         current_year = datetime.now().year
         if not int(value) or value > current_year:
             raise ValidationError('Некорректный год')
         return value
 
     class Meta:
+        """Определяет модель и поля, которые будут сериализованы."""
+
         model = Title
         fields = (
             'id',
@@ -211,37 +222,48 @@ class TitleSerializer(BaseSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     """Сериализатор для ревью."""
+
     author = serializers.SlugRelatedField(
         read_only=True, slug_field='username'
     )
 
     class Meta:
+        """Определяет модель и поля, которые будут сериализованы."""
+
         fields = ('id', 'author', 'text', 'score', 'pub_date')
-        #read_only_fields = ('author',)
         model = Review
 
     def validate_score(self, value):
+        """Проверяет, находится ли оценка в пределах от 1 до 10."""
         if value < 1 or value > 10:
-            raise serializers.ValidationError("Score must be between 1 and 10.")
+            raise serializers.ValidationError(
+                'Score must be between 1 and 10.'
+            )
         return value
 
     def create(self, validated_data):
+        """Создаёт уникальный отзыв для пользователя и произведения."""
         user = validated_data['author']
         title = validated_data['title']
 
         if Review.objects.filter(author=user, title=title).exists():
-            raise serializers.ValidationError('Вы уже оставили отзыв на этот title.')
-        
+            raise serializers.ValidationError(
+                'Вы уже оставили отзыв на этот title.'
+            )
+
         return super().create(validated_data)
 
 
 class CommentSerializer(serializers.ModelSerializer):
     """Сериализатор для комментариев к ревью."""
+
     author = serializers.SlugRelatedField(
         read_only=True, slug_field='username'
     )
 
     class Meta:
+        """Определяет модель и поля, которые будут сериализованы."""
+
         fields = ('id', 'author', 'pub_date', 'review', 'text')
         read_only_fields = ('review',)
         model = Comment

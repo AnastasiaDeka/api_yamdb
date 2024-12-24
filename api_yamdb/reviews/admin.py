@@ -1,3 +1,4 @@
+"""Настройки админки для категорий, жанров и произведений в проекте YaMDb."""
 from django.contrib import admin
 
 from .models import Category, Genre, Title

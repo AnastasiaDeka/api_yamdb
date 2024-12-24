@@ -15,12 +15,15 @@ from .filters import TitleFilter
 from users.models import User
 from reviews.models import Category, Genre, Title, Review
 from .serializers import (
-    TitleListSerializer, UserCreateSerializer, UserRecieveTokenSerializer, UserSerializer,
+    TitleListSerializer, UserCreateSerializer,
+    UserRecieveTokenSerializer,
+    UserSerializer,
     CategorySerializer, GenreSerializer, TitleSerializer,
     ReviewSerializer, CommentSerializer, UserMeSerializer
 )
 from .permissions import (
-    IsSuperUserOrAdmin, IsAdminOrReadOnly, IsAdminModeratorAuthorOrReadOnly
+    IsSuperUserOrAdmin, IsAdminOrReadOnly,
+    IsAdminModeratorAuthorOrReadOnly
 )
 from .utils import send_email
 
@@ -170,6 +173,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
 
     def get_serializer_class(self):
+        """Возвращает сериализатор в зависимости от действия."""
         if self.action in ('list', 'retrieve'):
             return TitleListSerializer
         return TitleSerializer
@@ -187,6 +191,7 @@ class CategoryGenreBaseViewSet(viewsets.GenericViewSet,
     lookup_field = 'slug'
 
     def destroy(self, request, slug=None):
+        """Удаляет объект по slug."""
         instance = get_object_or_404(self.queryset.model, slug=slug)
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -207,28 +212,33 @@ class GenreViewSet(CategoryGenreBaseViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
+    """Вьюсет для управления отзывами."""
+
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
     http_method_names = ['get', 'post', 'patch', 'delete']
     permission_classes = (
-        permissions.IsAuthenticatedOrReadOnly, IsAdminModeratorAuthorOrReadOnly,
+        permissions.IsAuthenticatedOrReadOnly,
+        IsAdminModeratorAuthorOrReadOnly,
     )
     pagination_class = PageNumberPagination
 
     def get_title(self):
+        """Получает объект произведения по переданному title_id."""
         title_id = self.kwargs.get("title_id")
         return get_object_or_404(Title, pk=title_id)
 
     def get_queryset(self):
+        """Возвращает список отзывов для конкретного произведения."""
         title = self.get_title()
         return title.reviews.all()
 
     def rating(self, request, *args, **kwargs):
+        """Обновляет рейтинг произведения на основе отзывов."""
         title = self.get_title()
         reviews = Review.objects.filter(title=title)
 
         if reviews.exists():
-            # 0, если оAverage Rating is None
             average_rating = reviews.aggregate(Avg('score'))['score__avg'] or 0
         else:
             average_rating = title.rating
@@ -237,27 +247,34 @@ class ReviewViewSet(viewsets.ModelViewSet):
         title.save()
 
     def perform_create(self, serializer):
+        """Создаёт отзыв, связывая его с автором и произведением."""
         title = self.get_title()
         serializer.save(author=self.request.user, title=title)
         self.rating(self.request, title.id)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
+    """Вьюсет для управления комментариями."""
+
     serializer_class = CommentSerializer
     http_method_names = ['get', 'post', 'patch', 'delete']
     permission_classes = (
-        permissions.IsAuthenticatedOrReadOnly, IsAdminModeratorAuthorOrReadOnly,
+        permissions.IsAuthenticatedOrReadOnly,
+        IsAdminModeratorAuthorOrReadOnly,
     )
     pagination_class = PageNumberPagination
 
     def get_review(self):
+        """Получает объект отзыва по переданному review_id."""
         review_id = self.kwargs.get("review_id")
         return get_object_or_404(Review, pk=review_id)
 
     def get_queryset(self):
+        """Возвращает список комментариев для конкретного отзыва."""
         review = self.get_review()
         return review.comments.all()
 
     def perform_create(self, serializer):
+        """Создаёт комментарий, связывая его с автором и отзывом."""
         review = self.get_review()
         serializer.save(author=self.request.user, review=review)

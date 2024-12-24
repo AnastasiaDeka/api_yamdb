@@ -1,3 +1,5 @@
+"""Настройки проекта api_yamdb."""
+
 from pathlib import Path
 from datetime import timedelta
 
@@ -25,6 +27,7 @@ INSTALLED_APPS = [
     'reviews.apps.ReviewsConfig',
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
+    'django_filters',
     'users'
 ]
 
@@ -112,6 +115,7 @@ STATICFILES_DIRS = ((BASE_DIR / 'static/'),)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+
 # JWT Authentication
 
 AUTH_USER_MODEL = 'users.User'
@@ -120,6 +124,11 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_FILTER_BACKENDS': (
+        'django_filters.rest_framework.DjangoFilterBackend',
+    ),
 }
 
 SIMPLE_JWT = {
@@ -127,3 +136,4 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

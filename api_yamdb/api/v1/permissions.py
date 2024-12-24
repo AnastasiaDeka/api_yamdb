@@ -1,32 +1,42 @@
+"""Классы разрешений для доступа к API."""
+
 from rest_framework import permissions
-from users.models import User
+from users.models import UserRole
+
 
 class IsSuperUserOrAdmin(permissions.BasePermission):
-    """
-    Доступ только для суперпользователей или администраторов.
-    """
+    """Доступ для суперпользователей или администраторов."""
 
     def has_permission(self, request, view):
-        return request.user.is_superuser or request.user.role == User.Role.ADMIN
+        """Проверяет, имеет ли пользователь доступ на основе его роли."""
+        return (request.user
+                and request.user.is_authenticated
+                and (request.user.is_superuser
+                     or request.user.role == UserRole.ADMIN
+                     ))
 
 
-class IsAdminModeratorAuthor(permissions.BasePermission):
-    """
-    Доступ для администраторов, модераторов или авторов.
-    """
+class IsAdminModeratorAuthorOrReadOnly(permissions.BasePermission):
+    """Доступ для администраторов, модераторов или авторов."""
 
     def has_object_permission(self, request, view, obj):
-        return request.user.is_authenticated and (
+        """Проверяет доступ к объекту на основе роли пользователя."""
+        if request.method in permissions.SAFE_METHODS:
+            return True
+
+        return (request.user and request.user.is_authenticated and (
             request.user.is_superuser
-            or request.user.role in [User.Role.ADMIN, User.Role.MODERATOR]
+            or request.user.role in [UserRole.ADMIN, UserRole.MODERATOR]
             or obj.author == request.user
-        )
+        ))
 
 
-class ReadOnlyForAnon(permissions.BasePermission):
-    """
-    Доступ анонимным пользователям только на чтение.
-    """
+class IsAdminOrReadOnly(permissions.BasePermission):
+    """Только для админов на изменение, остальные — для чтения."""
 
     def has_permission(self, request, view):
-        return request.method in permissions.SAFE_METHODS or request.user.is_authenticated
+        """Проверяет доступ на основе метода запроса и роли пользователя."""
+        return (
+            request.method in permissions.SAFE_METHODS
+            or IsSuperUserOrAdmin().has_permission(request, view)
+        )

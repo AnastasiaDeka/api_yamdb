@@ -1,49 +1,128 @@
+"""
+Модели для работы с произведениями, жанрами, категориями, отзывами.
+
+Этот файл содержит определения моделей для категории, жанра, произведения,
+произведения,отзыва и комментария,
+а также базовую модель для категорий и жанров с уникальными
+ограничениями на поля.
+"""
+
+from django.contrib.auth import get_user_model
 from django.db import models
 
+from users.models import User
 
-class Category(models.Model):
-    """Category model"""
-    name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True, max_length=50)
-
-    def __str__(self):
-        return self.name
+User = get_user_model()
 
 
-class Genre(models.Model):
-    """Genre model"""
-    name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True, max_length=50)
+class BaseModel(models.Model):
+    """Базовая модель для моделей жанра и категории."""
+
+    name = models.CharField(max_length=255, default=None)
+    slug = models.SlugField(unique=True, max_length=50, default=None)
 
     def __str__(self):
-        return self.name
+        """Возвращает slug модели."""
+        return self.slug
+
+    class Meta:
+        """Мета класс для базовой модели."""
+
+        ordering = ['id']
+        abstract = True
+
+    def __init_subclass__(cls, **kwargs):
+        """Добавляет уникальные ограничения на name и slug."""
+        super().__init_subclass__(**kwargs)
+        cls._meta.constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'slug'],
+                name=f'unique_{cls.__name__.lower()}_name_slug')
+        ]
+
+
+class Category(BaseModel):
+    """Модель категории."""
+
+
+class Genre(BaseModel):
+    """Модель жанра."""
 
 
 class Title(models.Model):
-    """Title model"""
+    """Модель произведения."""
+
     name = models.CharField(max_length=200)
     year = models.IntegerField()
-    rating = models.IntegerField()
+    rating = models.IntegerField(null=True)
     description = models.TextField()
     genre = models.ManyToManyField(Genre, through='TitleGenre')
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
+        """Возвращает название произведения."""
         return self.name
 
     class Meta:
-        ordering = ['-id']
+        """Мета класс для модели Title."""
+
+        ordering = ['id']
 
 
 class TitleGenre(models.Model):
-    """TitleGenre model"""
+    """Модель TitleGenre для связи произведения и жанра."""
+
     genre = models.ForeignKey(Genre, on_delete=models.SET_NULL, null=True)
     title = models.ForeignKey(Title, on_delete=models.SET_NULL, null=True)
 
     class Meta:
-        """Meta class for TitleGenre model"""
+        """Мета класс для модели TitleGenre."""
+
         constraints = [
             models.UniqueConstraint(
                 fields=['genre', 'title'], name='unique_title_genre')
         ]
+
+
+class Review(models.Model):
+    """Review model."""
+
+    text = models.TextField()
+    score = models.IntegerField()
+    pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='reviews')
+    title = models.ForeignKey(
+        Title,
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        """Указывает уникальное ограничение на genre и title."""
+
+        constraints = [
+            models.UniqueConstraint(
+                fields=['author', 'title'], name='unique_review_per_title')
+        ]
+        default_related_name = 'reviews'
+
+    def __str__(self):
+        """Возвращает текст отзыва."""
+        return self.text
+
+
+class Comment(models.Model):
+    """Comment model."""
+
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='comments')
+    review = models.ForeignKey(
+        Review, on_delete=models.CASCADE, related_name='comments')
+    text = models.TextField()
+    pub_date = models.DateTimeField(
+        'Дата добавления', auto_now_add=True, db_index=True)
+
+    def __str__(self):
+        """Возвращает автора и текст комментария."""
+        return f'{self.author}, {self.review}'

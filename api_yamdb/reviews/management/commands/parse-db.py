@@ -1,12 +1,16 @@
+"""Команда для импорта данных из CSV файлов в базу данных."""
 import csv
 from django.core.management.base import BaseCommand
 from reviews.models import User, Title, Category, Genre, Review, Comment
 
 
 class Command(BaseCommand):
+    """Импортирует данные из CSV файлов в базы данных для моделей."""
+
     help = 'Parse data from CSV files and insert into the database'
 
     def handle(self, *args, **kwargs):
+        """Обрабатывает CSV файлы, добавляет данные в модели."""
         csv_files = [
             'users.csv',
             'category.csv',
@@ -18,7 +22,8 @@ class Command(BaseCommand):
         ]
 
         for file in csv_files:
-            with open(f'static/data/{file}', newline='', encoding='utf-8') as csvfile:
+            with open(f'static/data/{file}', newline='',
+                      encoding='utf-8') as csvfile:
                 data = csv.reader(csvfile)
                 next(data)  # Skip the header row
                 for row in data:

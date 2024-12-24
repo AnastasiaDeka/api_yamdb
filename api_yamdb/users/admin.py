@@ -35,7 +35,6 @@ class UserAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         """Устанавливает пароль для нового пользователя."""
-
         if not obj.pk:
             obj.set_password(obj.password)
         super().save_model(request, obj, form, change)

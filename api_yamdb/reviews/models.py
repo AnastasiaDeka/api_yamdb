@@ -1,3 +1,12 @@
+"""
+Модели для работы с произведениями, жанрами, категориями, отзывами.
+
+Этот файл содержит определения моделей для категории, жанра, произведения,
+произведения,отзыва и комментария,
+а также базовую модель для категорий и жанров с уникальными
+ограничениями на поля.
+"""
+
 from django.contrib.auth import get_user_model
 from django.db import models
 
@@ -7,19 +16,23 @@ User = get_user_model()
 
 
 class BaseModel(models.Model):
-    """Базовая модель для моделей жанра и категории"""
+    """Базовая модель для моделей жанра и категории."""
+
     name = models.CharField(max_length=255, default=None)
     slug = models.SlugField(unique=True, max_length=50, default=None)
 
     def __str__(self):
+        """Возвращает slug модели."""
         return self.slug
 
     class Meta:
-        """Мета класс для базовой модели"""
+        """Мета класс для базовой модели."""
+
         ordering = ['id']
         abstract = True
 
     def __init_subclass__(cls, **kwargs):
+        """Добавляет уникальные ограничения на name и slug."""
         super().__init_subclass__(**kwargs)
         cls._meta.constraints = [
             models.UniqueConstraint(
@@ -29,15 +42,16 @@ class BaseModel(models.Model):
 
 
 class Category(BaseModel):
-    """Модель категории"""
+    """Модель категории."""
 
 
 class Genre(BaseModel):
-    """Модель жанра"""
+    """Модель жанра."""
 
 
 class Title(models.Model):
-    """Модель произведения"""
+    """Модель произведения."""
+
     name = models.CharField(max_length=200)
     year = models.IntegerField()
     rating = models.IntegerField(null=True)
@@ -47,20 +61,24 @@ class Title(models.Model):
         Category, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):
+        """Возвращает название произведения."""
         return self.name
 
     class Meta:
-        """Мета класс для модели Title"""
+        """Мета класс для модели Title."""
+
         ordering = ['id']
 
 
 class TitleGenre(models.Model):
-    """Модель TitleGenre для связи произведения и жанра"""
+    """Модель TitleGenre для связи произведения и жанра."""
+
     genre = models.ForeignKey(Genre, on_delete=models.SET_NULL, null=True)
     title = models.ForeignKey(Title, on_delete=models.SET_NULL, null=True)
 
     class Meta:
-        """Мета класс для модели TitleGenre"""
+        """Мета класс для модели TitleGenre."""
+
         constraints = [
             models.UniqueConstraint(
                 fields=['genre', 'title'], name='unique_title_genre')
@@ -68,7 +86,8 @@ class TitleGenre(models.Model):
 
 
 class Review(models.Model):
-    """Review model"""
+    """Review model."""
+
     text = models.TextField()
     score = models.IntegerField()
     pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
@@ -80,6 +99,8 @@ class Review(models.Model):
     )
 
     class Meta:
+        """Указывает уникальное ограничение на genre и title."""
+
         constraints = [
             models.UniqueConstraint(
                 fields=['author', 'title'], name='unique_review_per_title')
@@ -87,11 +108,13 @@ class Review(models.Model):
         default_related_name = 'reviews'
 
     def __str__(self):
+        """Возвращает текст отзыва."""
         return self.text
 
 
 class Comment(models.Model):
-    """Comment model"""
+    """Comment model."""
+
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='comments')
     review = models.ForeignKey(
@@ -101,4 +124,5 @@ class Comment(models.Model):
         'Дата добавления', auto_now_add=True, db_index=True)
 
     def __str__(self):
+        """Возвращает автора и текст комментария."""
         return f'{self.author}, {self.review}'

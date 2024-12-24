@@ -9,7 +9,6 @@ class IsSuperUserOrAdmin(permissions.BasePermission):
 
     def has_permission(self, request, view):
         """Проверяет, имеет ли пользователь доступ на основе его роли."""
-
         return (request.user
                 and request.user.is_authenticated
                 and (request.user.is_superuser
@@ -33,10 +32,7 @@ class IsAdminModeratorAuthorOrReadOnly(permissions.BasePermission):
 
 
 class IsAdminOrReadOnly(permissions.BasePermission):
-    """
-    Доступ только для администраторов на изменение.
-    Остальные могут только читать.
-    """
+    """Только для админов на изменение, остальные — для чтения."""
 
     def has_permission(self, request, view):
         """Проверяет доступ на основе метода запроса и роли пользователя."""

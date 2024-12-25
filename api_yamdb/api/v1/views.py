@@ -15,7 +15,7 @@ from .filters import TitleFilter
 from users.models import User
 from reviews.models import Category, Genre, Title, Review
 from .serializers import (
-    TitleListSerializer, UserCreateSerializer,
+    UserCreateSerializer,
     UserRecieveTokenSerializer,
     UserSerializer,
     CategorySerializer, GenreSerializer, TitleSerializer,
@@ -26,6 +26,7 @@ from .permissions import (
     IsAdminModeratorAuthorOrReadOnly
 )
 from .utils import send_email
+from .viewsets import CategoryGenreBaseViewSet
 
 User = get_user_model()
 
@@ -169,32 +170,13 @@ class TitleViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     filterset_class = TitleFilter
     search_fields = ('name', 'year', 'category__slug', 'genre__slug')
-    queryset = Title.objects.all()
     http_method_names = ['get', 'post', 'patch', 'delete']
+    serializer_class = TitleSerializer
 
-    def get_serializer_class(self):
-        """Возвращает сериализатор в зависимости от действия."""
-        if self.action in ('list', 'retrieve'):
-            return TitleListSerializer
-        return TitleSerializer
-
-
-class CategoryGenreBaseViewSet(viewsets.GenericViewSet,
-                               mixins.CreateModelMixin,
-                               mixins.DestroyModelMixin,
-                               mixins.ListModelMixin):
-    """Базовый вьюсет для категорий и жанров."""
-
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
-    lookup_field = 'slug'
-
-    def destroy(self, request, slug=None):
-        """Удаляет объект по slug."""
-        instance = get_object_or_404(self.queryset.model, slug=slug)
-        instance.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def get_queryset(self):
+        return Title.objects.annotate(
+            rating=Avg('reviews__score')
+        )
 
 
 class CategoryViewSet(CategoryGenreBaseViewSet):
@@ -229,7 +211,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return get_object_or_404(Title, pk=title_id)
 
     def get_queryset(self):
-        """Возвращает список отзывов для конкретного произведения."""
+        """Возвращает сп��сок отзывов для конкретного произведения."""
         title = self.get_title()
         return title.reviews.all()
 

@@ -163,47 +163,46 @@ class GenreSerializer(serializers.ModelSerializer):
 
 class TitleSerializer(serializers.ModelSerializer):
     """Сериализатор для произведений."""
-    category = CategorySerializer(read_only=True)
-    genre = GenreSerializer(many=True, read_only=True)
-    rating = serializers.IntegerField(required=False)
+
+    category = serializers.SlugRelatedField(
+        slug_field='slug',
+        queryset=Category.objects.all()
+    )
+    genre = serializers.SlugRelatedField(
+        many=True,
+        slug_field='slug',
+        queryset=Genre.objects.all()
+    )
+    rating = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Title
-        fields = ('id', 'name', 'year', 'rating', 'description',
-                  'genre', 'category')
+        fields = (
+            'id',
+            'name',
+            'year',
+            'rating',
+            'description',
+            'genre',
+            'category',
+        )
 
-    def create(self, validated_data):
-        category_slug = self.context['request'].data.get('category')
-        genre_slugs = self.context['request'].data.get('genre', [])
+    def to_representation(self, instance):
+        """Преобразование ответа в соответствии с ТЗ."""
+        representation = super().to_representation(instance)
 
-        # Get category instance
-        category = get_object_or_404(Category, slug=category_slug)
-        title = Title.objects.create(**validated_data, category=category)
+        category = instance.category
+        representation['category'] = {
+            'name': category.name,
+            'slug': category.slug
+        } if category else None
 
-        # Add genres
-        if genre_slugs:
-            genres = Genre.objects.filter(slug__in=genre_slugs)
-            title.genre.set(genres)
+        genres = instance.genre.all()
+        representation['genre'] = [
+            {'name': genre.name, 'slug': genre.slug} for genre in genres
+        ]
 
-        return title
-
-    def update(self, instance, validated_data):
-        category_slug = self.context['request'].data.get('category')
-        genre_slugs = self.context['request'].data.get('genre', [])
-
-        if category_slug:
-            category = get_object_or_404(Category, slug=category_slug)
-            instance.category = category
-
-        if genre_slugs:
-            genres = Genre.objects.filter(slug__in=genre_slugs)
-            instance.genre.set(genres)
-
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-
-        return instance
+        return representation
 
 
 class ReviewSerializer(serializers.ModelSerializer):

@@ -1,9 +1,10 @@
 """Модель пользователя для проекта YaMDB."""
 from django.contrib.auth.models import AbstractUser, UserManager
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from .validators import custom_username_validator
 from django.db import models
-from django.utils import timezone
-import uuid
-from datetime import timedelta
+
+from api.v1.constants import MAX_USERNAME_LENGTH, MAX_CONFIRMATION_CODE_LENGTH
 
 
 class UserRole(models.TextChoices):
@@ -23,7 +24,9 @@ class UserManagerYaMDB(UserManager):
                          password=None,
                          **extra_fields):
         """Создаёт суперпользователя с ролью администратора."""
-        extra_fields.setdefault('role', UserRole.ADMIN)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_staff', True)
+
         return super().create_superuser(username,
                                         email,
                                         password,
@@ -35,9 +38,17 @@ class User(AbstractUser):
 
     objects = UserManagerYaMDB()
 
+    username = models.CharField(
+        max_length=MAX_USERNAME_LENGTH,
+        unique=True,
+        validators=[UnicodeUsernameValidator(), custom_username_validator],
+        error_messages={
+            'unique': "Пользователь с таким ником уже существует.",
+        },
+    )
+
     email = models.EmailField(
         unique=True,
-        max_length=254,
         verbose_name='E-mail'
     )
     role = models.CharField(
@@ -48,19 +59,14 @@ class User(AbstractUser):
     )
     bio = models.TextField(
         blank=True,
-        null=True,
+        default='',
         verbose_name='Биография'
     )
     confirmation_code = models.CharField(
-        max_length=36,
+        max_length=MAX_CONFIRMATION_CODE_LENGTH,
         blank=True,
         null=True,
         verbose_name='Код подтверждения'
-    )
-    confirmation_code_expiry = models.DateTimeField(
-        blank=True,
-        null=True,
-        verbose_name='Срок действия кода подтверждения'
     )
 
     class Meta:
@@ -87,16 +93,3 @@ class User(AbstractUser):
     def __str__(self):
         """Строковое представление пользователя."""
         return self.username
-
-    def is_confirmation_code_valid(self):
-        """Проверяет, истек ли срок действия кода подтверждения."""
-        return (
-            self.confirmation_code_expiry
-            and (self.confirmation_code_expiry > timezone.now())
-        )
-
-    def generate_new_confirmation_code(self):
-        """Генерирует новый код подтверждения."""
-        self.confirmation_code = str(uuid.uuid4())
-        self.confirmation_code_expiry = timezone.now() + timedelta(minutes=15)
-        self.save()

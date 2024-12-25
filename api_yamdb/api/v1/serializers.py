@@ -1,92 +1,139 @@
 """Модуль сериализаторов для API."""
 
 import uuid
+import re
+from datetime import datetime
 
-from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
-from django.core.validators import RegexValidator
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.shortcuts import get_object_or_404
+from .constants import MAX_USERNAME_LENGTH, MAX_EMAIL_LENGTH
 
 from reviews.models import Category, Genre, Title, Comment, Review
 from users.models import User
+from users.validators import custom_username_validator
 
 
-class UserCreateSerializer(serializers.ModelSerializer):
+class UserCreateSerializer(serializers.Serializer):
     """Сериализатор для регистрации пользователя."""
 
-    class Meta:
-        """Определяет модель и поля, которые будут сериализованы."""
+    username = serializers.CharField(
+        max_length=MAX_USERNAME_LENGTH,
+        validators=[UnicodeUsernameValidator()],
+        error_messages={
+            "required": "Это поле обязательно для заполнения.",
+            "max_length": (
+                "Длина имени пользователя не может превышать 150 символов."
+            ),
+        }
+    )
 
-        model = User
-        fields = ['username', 'email']
+    email = serializers.EmailField(
+        max_length=MAX_EMAIL_LENGTH,
+        error_messages={
+            "required": "Это поле обязательно для заполнения.",
+            "invalid": "Введите корректный адрес электронной почты.",
+        }
+    )
 
-    def create(self, validated_data):
-        """Создание пользователя или обновление кода подтверждения."""
-        user = User.objects.filter(username=validated_data['username'],
-                                   email=validated_data['email']).first()
+    def validate_username(self, value):
+        """Проверка валидности имени пользователя."""
+        custom_username_validator(value)
+        return value
 
-        if user:
-            user.confirmation_code = str(uuid.uuid4())
-            user.save()
-            return user
+    def validate(self, data):
+        """Кастомная валидация комбинации username и email."""
+        username = data.get('username')
+        email = data.get('email')
 
-        if User.objects.filter(email=validated_data['email']).exists():
+        user_by_email = User.objects.filter(email=email).first()
+        user_by_username = User.objects.filter(username=username).first()
+
+        if (user_by_email and user_by_username
+                and user_by_email != user_by_username):
+            error_msg = {}
+
+            if user_by_email:
+                error_msg['email'] = [
+                    'Пользователь с таким E-mail уже существует.'
+                ]
+            if user_by_username:
+                error_msg['username'] = [
+                    'Пользователь с таким именем уже существует.'
+                ]
+
+            raise serializers.ValidationError(error_msg)
+
+        if user_by_email:
             raise serializers.ValidationError({
                 'email': ['Пользователь с таким E-mail уже существует.']
             })
 
+        if user_by_username:
+            raise serializers.ValidationError({
+                'username': ['Пользователь с таким именем уже существует.']
+            })
+
+        return data
+
+    def create(self, validated_data):
+        """Создание пользователя или обновление кода подтверждения."""
+        user = User.objects.filter(
+            username=validated_data['username'],
+            email=validated_data['email']
+        ).first()
+
+        if user:
+            user.generate_new_confirmation_code()
+            return user
+
         user = User.objects.create_user(
             username=validated_data['username'],
-            email=validated_data['email'],
-            password=None
+            email=validated_data['email']
         )
         user.set_unusable_password()
         return user
-
-    def validate_username(self, value):
-        """Проверка имени пользователя на недопустимые значения."""
-        if value.lower() == 'me':
-            raise serializers.ValidationError(
-                'Имя пользователя "me" недопустимо.')
-        return value
 
 
 class UserRecieveTokenSerializer(serializers.Serializer):
     """Сериализатор для получения токена по коду подтверждения."""
 
-    username = serializers.CharField(max_length=150)
-    confirmation_code = serializers.CharField(max_length=200)
+    username = serializers.CharField(
+        max_length=MAX_USERNAME_LENGTH,
+        validators=[UnicodeUsernameValidator()],
+        error_messages={
+            "required": "Это поле обязательно для заполнения.",
+            "max_length": (
+                f"Длина имени пользователя не может превышать "
+                f"{MAX_USERNAME_LENGTH} символов."
+            ),
+        }
+    )
+
+    confirmation_code = serializers.CharField(
+        error_messages={
+            "required": "Это поле обязательно для заполнения.",
+        }
+    )
+
+    def validate_username(self, value):
+        """Кастомная валидация имени пользователя."""
+        if value.lower() == 'me':
+            raise serializers.ValidationError(
+                'Имя пользователя "me" недопустимо.'
+            )
+        return value
 
 
 class UserMeSerializer(serializers.ModelSerializer):
     """Сериализатор для работы с данными текущего пользователя."""
 
-    username = serializers.CharField(
-        max_length=150,
-        validators=[
-            RegexValidator(
-                regex=r'^[\w.@+-]+\Z',
-                message='Имя пользователя содержит недопустимые символы.',
-                code='invalid_username'
-            )
-        ]
-    )
-    email = serializers.EmailField(
-        max_length=254,
-        error_messages={
-            'max_length': 'E-mail не может быть длиннее 254 символов.'
-        }
-    )
-
     class Meta:
         """Определяет модель и поля, которые будут сериализованы."""
 
         model = User
-        fields = ('username', 'email', 'first_name',
-                  'last_name', 'bio')
-        extra_kwargs = {
-            'username': {'read_only': True},
-            'email': {'read_only': True}
-        }
+        fields = ('username', 'email', 'first_name', 'last_name', 'bio')
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -100,14 +147,7 @@ class UserSerializer(serializers.ModelSerializer):
                   'last_name', 'bio', 'role')
 
 
-class UserActivateSerializer(serializers.Serializer):
-    """Сериализатор для активации учетной записи через email."""
-
-    username = serializers.CharField(max_length=150)
-    confirmation_code = serializers.CharField(max_length=200)
-
-
-class CategorySerializer(serializers.ModelSerializer):
+class CategorySerializer(CategoryGenreBaseSerializer):
     """Сериализатор для категорий."""
 
     class Meta:

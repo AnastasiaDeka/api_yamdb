@@ -41,4 +41,4 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         """Проверяет доступ на основе метода запроса и роли пользователя."""
         if request.method in permissions.SAFE_METHODS:
             return True
-        return request.user.is_authenticated and request.user.is_admin()
+        return request.user.is_authenticated and request.user.is_admin

@@ -1,7 +1,6 @@
 """Модуль сериализаторов для API."""
 from rest_framework import serializers
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.shortcuts import get_object_or_404
 from .constants import MAX_USERNAME_LENGTH, MAX_EMAIL_LENGTH
 
 from reviews.models import Category, Genre, Title, Comment, Review

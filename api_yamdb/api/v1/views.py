@@ -175,8 +175,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def rating(self, request, *args, **kwargs):
         """Обновляет рейтинг произведения на основе отзывов."""
-        title = self.get_title()
-        reviews = Review.objects.filter(title=title)
+        pass
 
     def perform_create(self, serializer):
         """Создаёт отзыв, связывая его с автором и произведением."""

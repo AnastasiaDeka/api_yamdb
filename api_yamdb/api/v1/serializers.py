@@ -1,18 +1,18 @@
 """Модуль сериализаторов для API."""
 
+import uuid
 import re
 from datetime import datetime
 
 from rest_framework.exceptions import ValidationError
-
 from rest_framework import serializers
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.shortcuts import get_object_or_404
+from .constants import MAX_USERNAME_LENGTH, MAX_EMAIL_LENGTH
 
 from reviews.models import Category, Genre, Title, Comment, Review
 from users.models import User
 from users.validators import custom_username_validator
-
-from django.contrib.auth.validators import UnicodeUsernameValidator
-from .constants import MAX_USERNAME_LENGTH, MAX_EMAIL_LENGTH
 
 
 class UserCreateSerializer(serializers.Serializer):
@@ -147,41 +147,6 @@ class UserSerializer(serializers.ModelSerializer):
                   'last_name', 'bio', 'role')
 
 
-class BaseSerializer(serializers.ModelSerializer):
-    """Базовый сериализатор для произведений, категорий и жанров."""
-
-    name = serializers.CharField(required=True)
-
-    def validate_name(self, value):
-        """Проверяет корректность имени пользователя."""
-        if not value:
-            raise serializers.ValidationError('Имя не может быть пустым')
-        if len(value) > 256:
-            raise serializers.ValidationError(
-                'Длина названия не должна превышать 256 символов'
-            )
-        return value
-
-
-class CategoryGenreBaseSerializer(BaseSerializer):
-    """Базовый сериализатор для категорий и жанров."""
-
-    slug = serializers.SlugField(required=True)
-
-    def validate_slug(self, value):
-        """Проверяет корректность значения поля slug."""
-        if not re.match(r'^[-a-zA-Z0-9_]+$', value):
-            raise serializers.ValidationError(
-                'Слаг может содержать только латинские буквы, цифры, '
-                'дефисы и знаки подчеркивания.')
-        if self.Meta.model.objects.filter(slug=value).exists():
-            raise serializers.ValidationError('Слаг уже существует')
-        if len(value) > 50:
-            raise serializers.ValidationError(
-                'Длина слага не должна превышать 50 символов')
-        return value
-
-
 class CategorySerializer(CategoryGenreBaseSerializer):
     """Сериализатор для категорий."""
 
@@ -192,7 +157,7 @@ class CategorySerializer(CategoryGenreBaseSerializer):
         fields = ('name', 'slug')
 
 
-class GenreSerializer(CategoryGenreBaseSerializer):
+class GenreSerializer(serializers.ModelSerializer):
     """Сериализатор для жанров."""
 
     class Meta:
@@ -202,60 +167,49 @@ class GenreSerializer(CategoryGenreBaseSerializer):
         fields = ('name', 'slug')
 
 
-class TitleListSerializer(BaseSerializer):
-    """Сериализатор для списка произведений."""
-
-    genre = GenreSerializer(many=True)
-    category = CategorySerializer()
-
-    class Meta:
-        """Определяет модель и поля, которые будут сериализованы."""
-
-        model = Title
-        fields = (
-            'id',
-            'name',
-            'year',
-            'rating',
-            'description',
-            'genre',
-            'category'
-        )
-
-
-class TitleSerializer(BaseSerializer):
+class TitleSerializer(serializers.ModelSerializer):
     """Сериализатор для произведений."""
-
-    genre = serializers.SlugRelatedField(
-        many=True,
-        slug_field='slug',
-        queryset=Genre.objects.all()
-    )
-    category = serializers.SlugRelatedField(
-        slug_field='slug',
-        queryset=Category.objects.all()
-    )
-
-    def validate_year(self, value):
-        """Валидация года выпуска произведений."""
-        current_year = datetime.now().year
-        if not int(value) or value > current_year:
-            raise ValidationError('Некорректный год')
-        return value
+    category = CategorySerializer(read_only=True)
+    genre = GenreSerializer(many=True, read_only=True)
+    rating = serializers.IntegerField(required=False)
 
     class Meta:
-        """Определяет модель и поля, которые будут сериализованы."""
-
         model = Title
-        fields = (
-            'id',
-            'name',
-            'year',
-            'rating',
-            'description',
-            'genre',
-            'category'
-        )
+        fields = ('id', 'name', 'year', 'rating', 'description',
+                  'genre', 'category')
+
+    def create(self, validated_data):
+        category_slug = self.context['request'].data.get('category')
+        genre_slugs = self.context['request'].data.get('genre', [])
+
+        # Get category instance
+        category = get_object_or_404(Category, slug=category_slug)
+        title = Title.objects.create(**validated_data, category=category)
+
+        # Add genres
+        if genre_slugs:
+            genres = Genre.objects.filter(slug__in=genre_slugs)
+            title.genre.set(genres)
+
+        return title
+
+    def update(self, instance, validated_data):
+        category_slug = self.context['request'].data.get('category')
+        genre_slugs = self.context['request'].data.get('genre', [])
+
+        if category_slug:
+            category = get_object_or_404(Category, slug=category_slug)
+            instance.category = category
+
+        if genre_slugs:
+            genres = Genre.objects.filter(slug__in=genre_slugs)
+            instance.genre.set(genres)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        return instance
 
 
 class ReviewSerializer(serializers.ModelSerializer):

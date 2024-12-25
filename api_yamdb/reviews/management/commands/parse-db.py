@@ -71,7 +71,7 @@ class Command(BaseCommand):
                             review_id=int(row[1]),
                             text=row[2],
                             author_id=int(row[3]),
-                            created=row[4]
+                            pub_date=row[4]
                         )
                     elif file == 'genre_title.csv':
                         title = Title.objects.get(id=int(row[1]))

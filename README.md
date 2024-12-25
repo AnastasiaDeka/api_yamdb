@@ -120,7 +120,7 @@ http://127.0.0.1:8000/redoc/
 
 Проект выполнялся в команде из 3 человек:
 
-- [Декапольцева Анастасия]([https://github.com/username1](https://github.com/AnastasiaDeka)
-- [Кузнецова Екатерина]([https://github.com/username2](https://github.com/kateschka)
-- [Баукова Людмила]([https://github.com/username3](https://github.com/bauklu)
+- [Декапольцева Анастасия](https://github.com/AnastasiaDeka)
+- [Кузнецова Екатерина](https://github.com/kateschka)
+- [Баукова Людмила](https://github.com/bauklu)
 

@@ -104,6 +104,12 @@ pip install -r requirements.txt
 python3 manage.py migrate
 ```
 
+Импортировать данные из CSV:
+
+```
+python3 manage.py parse-db
+```
+
 Запустить проект:
 
 ```
@@ -122,46 +128,12 @@ http://127.0.0.1:8000/redoc/
 Документация описывает, как должен работать ваш API и какие запросы можно отправлять.
 Документация представлена в формате Redoc.
 
-## Примеры запросов
 
-### Получение списка всех постов
+## Команда разработки
 
->Статус 200 - удачное выполнение запроса
+Проект выполнялся в команде из 3 человек:
 
-``` json
-{
-  "count": 0,
-  "next": "string",
-  "previous": "string",
-  "results": [
-    {
-      "id": 0,
-      "author": "N@uSABZwvzB2hGI0XPyqWoKuypfUWRM6iow_vAKLzkBRWc5UW4tg064HNpm8G@7TluCu@0bI43d6eyUuKABc",
-      "text": "string",
-      "pub_date": "2024-11-29T16:04:48.701Z",
-      "image": "string",
-      "group": 0
-    }
-  ]
-}
-```
+- [Декапольцева Анастасия](https://github.com/AnastasiaDeka)
+- [Кузнецова Екатерина](https://github.com/kateschka)
+- [Баукова Людмила](https://github.com/bauklu)
 
-### Cоздания нового поста с передачей данных
-
->Статус 201 - удачное выполнение запроса
-
-``` json
-{
-  "text": "string",
-  "group": 0
-}
-
-```
-
-## Авторы:
-
-Декаапольцева Анастасия
-
-Кузнецова Екатерина
-
-Баукова Людмила

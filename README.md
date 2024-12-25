@@ -115,47 +115,12 @@ http://127.0.0.1:8000/redoc/
 Документация описывает, как должен работать ваш API и какие запросы можно отправлять.
 Документация представлена в формате Redoc.
 
-## Примеры запросов
-
-### Получение списка всех постов
-
->Статус 200 - удачное выполнение запроса
-
-``` json
-{
-  "count": 0,
-  "next": "string",
-  "previous": "string",
-  "results": [
-    {
-      "id": 0,
-      "author": "N@uSABZwvzB2hGI0XPyqWoKuypfUWRM6iow_vAKLzkBRWc5UW4tg064HNpm8G@7TluCu@0bI43d6eyUuKABc",
-      "text": "string",
-      "pub_date": "2024-11-29T16:04:48.701Z",
-      "image": "string",
-      "group": 0
-    }
-  ]
-}
-```
-
-### Cоздания нового поста с передачей данных
-
->Статус 201 - удачное выполнение запроса
-
-``` json
-{
-  "text": "string",
-  "group": 0
-}
-
-```
 
 ## Команда разработки
 
 Проект выполнялся в команде из 3 человек:
 
-- [Декапольцева Анастасия]([https://github.com/username1](https://github.com/AnastasiaDeka))
-- [Кузнецова Екатерина]([https://github.com/username2](https://github.com/kateschka))
-- [Баукова Людмила]([https://github.com/username3](https://github.com/bauklu))
+- [Декапольцева Анастасия]([https://github.com/username1](https://github.com/AnastasiaDeka)
+- [Кузнецова Екатерина]([https://github.com/username2](https://github.com/kateschka)
+- [Баукова Людмила]([https://github.com/username3](https://github.com/bauklu)
 

@@ -94,6 +94,12 @@ pip install -r requirements.txt
 python3 manage.py migrate
 ```
 
+Импортировать данные из CSV:
+
+```
+python3 manage.py import_csv
+```
+
 Запустить проект:
 
 ```
@@ -145,10 +151,11 @@ http://127.0.0.1:8000/redoc/
 
 ```
 
-## Авторы:
+## Команда разработки
 
-Декаапольцева Анастасия
+Проект выполнялся в команде из 3 человек:
 
-Кузнецова Екатерина
+- [Декаапольцева Анастасия]([https://github.com/username1](https://github.com/AnastasiaDeka))
+- [Кузнецова Екатерина]([https://github.com/username2](https://github.com/kateschka))
+- [Баукова Людмила]([https://github.com/username3](https://github.com/bauklu))
 
-Баукова Людмила

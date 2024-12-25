@@ -1,10 +1,4 @@
 """Модуль сериализаторов для API."""
-
-import uuid
-import re
-from datetime import datetime
-
-from rest_framework.exceptions import ValidationError
 from rest_framework import serializers
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.shortcuts import get_object_or_404
@@ -147,7 +141,7 @@ class UserSerializer(serializers.ModelSerializer):
                   'last_name', 'bio', 'role')
 
 
-class CategorySerializer(CategoryGenreBaseSerializer):
+class CategorySerializer(serializers.ModelSerializer):
     """Сериализатор для категорий."""
 
     class Meta:

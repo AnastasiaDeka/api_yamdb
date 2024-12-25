@@ -173,23 +173,10 @@ class ReviewViewSet(viewsets.ModelViewSet):
         title_id = self.kwargs.get("title_id")
         return get_object_or_404(Title, pk=title_id)
 
-    def get_queryset(self):
-        """Возвращает сп��сок отзывов для конкретного произведения."""
-        title = self.get_title()
-        return title.reviews.all()
-
     def rating(self, request, *args, **kwargs):
         """Обновляет рейтинг произведения на основе отзывов."""
         title = self.get_title()
         reviews = Review.objects.filter(title=title)
-
-        if reviews.exists():
-            average_rating = reviews.aggregate(Avg('score'))['score__avg'] or 0
-        else:
-            average_rating = title.rating
-
-        title.rating = average_rating
-        title.save()
 
     def perform_create(self, serializer):
         """Создаёт отзыв, связывая его с автором и произведением."""
@@ -212,7 +199,8 @@ class CommentViewSet(viewsets.ModelViewSet):
     def get_review(self):
         """Получает объект отзыва по переданному review_id."""
         review_id = self.kwargs.get("review_id")
-        return get_object_or_404(Review, pk=review_id)
+        title_id = self.kwargs.get("title_id")
+        return get_object_or_404(Review, pk=review_id, title_id=title_id)
 
     def get_queryset(self):
         """Возвращает список комментариев для конкретного отзыва."""

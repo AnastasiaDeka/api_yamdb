@@ -107,7 +107,7 @@ python3 manage.py migrate
 Импортировать данные из CSV:
 
 ```
-python3 manage.py import_csv
+python3 manage.py parse-db
 ```
 
 Запустить проект:

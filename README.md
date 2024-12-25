@@ -7,6 +7,16 @@
 
 Кроме того, пользователи могут оставлять комментарии к отзывам, а доступ к различным функциям системы зависит от их роли.
 
+## Технологии
+ Back-end
+  Python, Django, DRF
+ Database
+  SQLite3
+ Tools
+  visual studio code
+  Postman, Git, GitHub
+ Collaboration 
+
 ## Ресурсы API
 
 >**auth**
@@ -100,6 +110,9 @@ python3 manage.py migrate
 python3 manage.py runserver
 ```
 
+Импорт данных из ssv-файлов:
+...
+python3 manage.py parse-db
 
 ## Документация к API
 

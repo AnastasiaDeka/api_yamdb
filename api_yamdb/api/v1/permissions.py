@@ -39,7 +39,6 @@ class IsAdminOrReadOnly(permissions.BasePermission):
 
     def has_permission(self, request, view):
         """Проверяет доступ на основе метода запроса и роли пользователя."""
-        return (
-            request.method in permissions.SAFE_METHODS
-            or IsSuperUserOrAdmin().has_permission(request, view)
-        )
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return request.user.is_authenticated and request.user.is_admin()

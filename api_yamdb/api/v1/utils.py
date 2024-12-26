@@ -1,5 +1,6 @@
 """Утилиты для работы с email в проекте."""
-import uuid
+
+from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 
 
@@ -8,7 +9,8 @@ def send_email(user, email_type='confirmation', code=None) -> None:
     if email_type == 'confirmation':
         if code is None:
             if not user.confirmation_code:
-                user.confirmation_code = str(uuid.uuid4())
+                token_generator = default_token_generator.make_token(user)
+                user.confirmation_code = token_generator
             user.save()
             code = user.confirmation_code
 

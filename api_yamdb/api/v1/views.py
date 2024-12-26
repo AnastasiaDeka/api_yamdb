@@ -79,6 +79,8 @@ def user_confirmation_view(request):
 
     if user:
         confirmation_code = default_token_generator.make_token(user)
+        user.confirmation_code = confirmation_code
+        user.save()
         send_email(user, email_type='confirmation', code=confirmation_code)
         return Response(
             {'username': user.username, 'email': user.email},
@@ -90,6 +92,8 @@ def user_confirmation_view(request):
 
     user = serializer.save()
     confirmation_code = default_token_generator.make_token(user)
+    user.confirmation_code = confirmation_code
+    user.save()
 
     send_email(user, email_type='confirmation', code=confirmation_code)
 

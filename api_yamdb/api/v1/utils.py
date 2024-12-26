@@ -8,9 +8,9 @@ def send_email(user, email_type='confirmation', code=None) -> None:
     """Отправка email с кодом подтверждения."""
     if email_type == 'confirmation':
         if code is None:
-            if not user.confirmation_code:
-                token_generator = default_token_generator.make_token(user)
-                user.confirmation_code = token_generator
+
+            token_generator = default_token_generator.make_token(user)
+            user.confirmation_code = token_generator
             user.save()
             code = user.confirmation_code
 

@@ -28,7 +28,6 @@ from .serializers import (
     UserRecieveTokenSerializer,
     CategorySerializer, GenreSerializer, TitleSerializer,
     ReviewSerializer, CommentSerializer, UserMeSerializer,
-    
 )
 from .permissions import (
     IsSuperUserOrAdmin, IsAdminOrReadOnly,
@@ -58,6 +57,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_me_data(self, request):
         """Получение и обновление данных текущего пользователя."""
         user = request.user
+
         if request.method == 'PATCH':
             serializer = UserMeSerializer(user, data=request.data,
                                           partial=True)
@@ -73,39 +73,24 @@ class UserViewSet(viewsets.ModelViewSet):
 @permission_classes([AllowAny])
 def user_confirmation_view(request):
     """Создание пользователя или повторная отправка кода подтверждения."""
-    
-    # Используем сериализатор для валидации входных данных
     serializer = UserCreateSerializer(data=request.data)
+
     serializer.is_valid(raise_exception=True)
-    
-    # Извлекаем данные пользователя из сериализатора
+
     username = serializer.validated_data['username']
     email = serializer.validated_data['email']
 
-    # Проверка существования пользователя с таким email и username
-    user, created = User.objects.get_or_create(
-        username=username,
-        defaults={'email': email}
-    )
+    user, created = User.objects.get_or_create(username=username, email=email)
 
-    # Если пользователь был только что создан, отправляем код подтверждения
-    if created:
-        # Генерация токена для подтверждения
-        confirmation_code = default_token_generator.make_token(user)
-        
-        # Отправка email с кодом подтверждения
-        send_email(user, code=confirmation_code)
-        return Response(
-            {'username': user.username, 'email': user.email},
-            status=status.HTTP_200_OK  # Изменено с 201 на 200 для совместимости с тестами
-        )
-    
-    # Если пользователь уже существует, возвращаем ответ с кодом 400
+    confirmation_code = default_token_generator.make_token(user)
+    send_email(user, code=confirmation_code)
+
+    response_data = {'username': user.username, 'email': user.email}
+
     return Response(
-        {'detail': 'Пользователь с таким email или username уже существует.'},
-        status=status.HTTP_400_BAD_REQUEST
+        response_data,
+        status=status.HTTP_200_OK
     )
-
 
 
 class TokenObtainViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):

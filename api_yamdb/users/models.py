@@ -1,7 +1,10 @@
+"""Модель пользователя для проекта YaMDB."""
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
-from users.constants import MAX_USERNAME_LENGTH, MAX_EMAIL_LENGTH, MAX_ROLE_LENGTH, MAX_CONFIRMATION_CODE_LENGTH
+from users.constants import (
+    MAX_USERNAME_LENGTH, MAX_EMAIL_LENGTH, MAX_ROLE_LENGTH,
+    MAX_CONFIRMATION_CODE_LENGTH)
 from .validators import custom_username_validator
 
 
@@ -15,13 +18,14 @@ class UserRole(models.TextChoices):
 
 class User(AbstractUser):
     """Модель пользователя проекта YaMDB."""
-    
+
     objects = UserManager()
 
     username = models.CharField(
         max_length=MAX_USERNAME_LENGTH,
         unique=True,
-        validators=[UnicodeUsernameValidator(), custom_username_validator],
+        validators=[UnicodeUsernameValidator(),
+                    custom_username_validator],
         error_messages={
             'unique': "Пользователь с таким ником уже существует.",
         },
@@ -35,7 +39,7 @@ class User(AbstractUser):
     )
 
     role = models.CharField(
-        max_length=MAX_ROLE_LENGTH,  # заменили на константу
+        max_length=MAX_ROLE_LENGTH,
         choices=UserRole.choices,
         default=UserRole.USER,
         verbose_name='Роль'
@@ -47,9 +51,8 @@ class User(AbstractUser):
         verbose_name='Биография'
     )
 
-    # Убираем поле confirmation_code, если оно не используется для хранения в базе данных
     confirmation_code = models.CharField(
-        max_length=MAX_CONFIRMATION_CODE_LENGTH,  # заменили на константу
+        max_length=MAX_CONFIRMATION_CODE_LENGTH,
         blank=True,
         null=True,
         verbose_name='Код подтверждения'
@@ -57,9 +60,10 @@ class User(AbstractUser):
 
     class Meta:
         """Метаданные модели пользователя."""
+
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-        ordering = ['username']  # Сортировка по имени пользователя
+        ordering = ['username']
 
     @property
     def is_admin(self):

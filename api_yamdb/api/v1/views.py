@@ -1,11 +1,19 @@
 """API views для платформы Yamdb."""
 
+from django.db import IntegrityError
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.tokens import default_token_generator
-from rest_framework import viewsets, permissions, status, mixins, filters
+from rest_framework import (
+    viewsets,
+    permissions,
+    status,
+    mixins,
+    filters,
+    serializers
+)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -16,7 +24,7 @@ from .filters import TitleFilter
 from users.models import User
 from reviews.models import Category, Genre, Title, Review
 from .serializers import (
-    TitleListSerializer, UserCreateSerializer,
+    UserCreateSerializer,
     UserRecieveTokenSerializer,
     CategorySerializer, GenreSerializer, TitleSerializer,
     ReviewSerializer, CommentSerializer, UserMeSerializer,
@@ -27,6 +35,7 @@ from .permissions import (
     IsAdminModeratorAuthorOrReadOnly
 )
 from .utils import send_email
+from .viewsets import CategoryGenreBaseViewSet
 
 User = get_user_model()
 
@@ -133,32 +142,13 @@ class TitleViewSet(viewsets.ModelViewSet):
     filter_backends = (filters.SearchFilter, DjangoFilterBackend)
     filterset_class = TitleFilter
     search_fields = ('name', 'year', 'category__slug', 'genre__slug')
-    queryset = Title.objects.all()
     http_method_names = ['get', 'post', 'patch', 'delete']
+    serializer_class = TitleSerializer
 
-    def get_serializer_class(self):
-        """Возвращает сериализатор в зависимости от действия."""
-        if self.action in ('list', 'retrieve'):
-            return TitleListSerializer
-        return TitleSerializer
-
-
-class CategoryGenreBaseViewSet(viewsets.GenericViewSet,
-                               mixins.CreateModelMixin,
-                               mixins.DestroyModelMixin,
-                               mixins.ListModelMixin):
-    """Базовый вьюсет для категорий и жанров."""
-
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
-    lookup_field = 'slug'
-
-    def destroy(self, request, slug=None):
-        """Удаляет объект по slug."""
-        instance = get_object_or_404(self.queryset.model, slug=slug)
-        instance.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def get_queryset(self):
+        return Title.objects.annotate(
+            rating=Avg('reviews__score')
+        )
 
 
 class CategoryViewSet(CategoryGenreBaseViewSet):
@@ -192,29 +182,12 @@ class ReviewViewSet(viewsets.ModelViewSet):
         title_id = self.kwargs.get("title_id")
         return get_object_or_404(Title, pk=title_id)
 
-    def get_queryset(self):
-        """Возвращает список отзывов для конкретного произведения."""
-        title = self.get_title()
-        return title.reviews.all()
-
-    def rating(self, request, *args, **kwargs):
-        """Обновляет рейтинг произведения на основе отзывов."""
-        title = self.get_title()
-        reviews = Review.objects.filter(title=title)
-
-        if reviews.exists():
-            average_rating = reviews.aggregate(Avg('score'))['score__avg'] or 0
-        else:
-            average_rating = title.rating
-
-        title.rating = average_rating
-        title.save()
-
     def perform_create(self, serializer):
         """Создаёт отзыв, связывая его с автором и произведением."""
         title = self.get_title()
+        if Review.objects.filter(author=self.request.user, title=title).exists():
+            raise serializers.ValidationError('Вы уже оставили отзыв на это произведение')
         serializer.save(author=self.request.user, title=title)
-        self.rating(self.request, title.id)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -231,7 +204,8 @@ class CommentViewSet(viewsets.ModelViewSet):
     def get_review(self):
         """Получает объект отзыва по переданному review_id."""
         review_id = self.kwargs.get("review_id")
-        return get_object_or_404(Review, pk=review_id)
+        title_id = self.kwargs.get("title_id")
+        return get_object_or_404(Review, pk=review_id, title_id=title_id)
 
     def get_queryset(self):
         """Возвращает список комментариев для конкретного отзыва."""

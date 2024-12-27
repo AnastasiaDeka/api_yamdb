@@ -9,6 +9,12 @@
 
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.core.validators import (
+    MinValueValidator,
+    MaxValueValidator,
+    RegexValidator
+)
+from django.utils import timezone
 
 from users.models import User
 
@@ -18,56 +24,69 @@ User = get_user_model()
 class BaseModel(models.Model):
     """Базовая модель для моделей жанра и категории."""
 
-    name = models.CharField(max_length=255, default=None)
-    slug = models.SlugField(unique=True, max_length=50, default=None)
-
-    def __str__(self):
-        """Возвращает slug модели."""
-        return self.slug
+    name = models.CharField(max_length=256)
+    slug = models.SlugField(
+        unique=True,
+        max_length=50,
+        validators=[
+            RegexValidator(
+                regex=r'^[-a-zA-Z0-9_]+$',
+                message=('Слаг может содержать только буквы,'
+                         'цифры, подчеркивания и дефисы'),
+            ),
+        ]
+    )
 
     class Meta:
         """Мета класс для базовой модели."""
 
-        ordering = ['id']
+        ordering = ('name', 'slug')
         abstract = True
-
-    def __init_subclass__(cls, **kwargs):
-        """Добавляет уникальные ограничения на name и slug."""
-        super().__init_subclass__(**kwargs)
-        cls._meta.constraints = [
-            models.UniqueConstraint(
-                fields=['name', 'slug'],
-                name=f'unique_{cls.__name__.lower()}_name_slug')
-        ]
 
 
 class Category(BaseModel):
     """Модель категории."""
 
+    def __str__(self):
+        """Возвращает строковое представление модели."""
+        return f'Категория: {self.name}'
+
 
 class Genre(BaseModel):
     """Модель жанра."""
+
+    def __str__(self):
+        """Возвращает строковое представление модели."""
+        return f'Жанр: {self.name}'
 
 
 class Title(models.Model):
     """Модель произведения."""
 
-    name = models.CharField(max_length=200)
-    year = models.IntegerField()
-    rating = models.IntegerField(null=True)
-    description = models.TextField()
+    name = models.CharField(max_length=256)
+    year = models.SmallIntegerField(
+        validators=[MaxValueValidator(
+            timezone.now().year,
+            message='Год не может быть больше текущего'
+        )]
+    )
+    description = models.TextField(blank=True)
     genre = models.ManyToManyField(Genre, through='TitleGenre')
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, null=True)
 
-    def __str__(self):
-        """Возвращает название произведения."""
-        return self.name
-
     class Meta:
         """Мета класс для модели Title."""
 
-        ordering = ['id']
+        ordering = ('name', 'year')
+
+    def __str__(self):
+        """Возвращает строковое представление произведения."""
+        genres = ', '.join(self.genre.values_list('name', flat=True))
+        return (f'Название: "{self.name}", '
+                f'год выпуска: {self.year}, '
+                f'категория: {self.category}, '
+                f'жанр: {genres}')
 
 
 class TitleGenre(models.Model):
@@ -88,8 +107,13 @@ class TitleGenre(models.Model):
 class Review(models.Model):
     """Review model."""
 
-    text = models.TextField()
-    score = models.IntegerField()
+    text = models.TextField('Текст')
+    score = models.IntegerField(
+        validators=[
+            MinValueValidator(1, message="Оценка должна быть не меньше 1"),
+            MaxValueValidator(10, message="Оценка не может превышать 10")
+        ]
+    )
     pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='reviews')
@@ -99,7 +123,7 @@ class Review(models.Model):
     )
 
     class Meta:
-        """Указывает уникальное ограничение на genre и title."""
+        """Указывает уникальное ограничение на author и title."""
 
         constraints = [
             models.UniqueConstraint(
@@ -107,9 +131,11 @@ class Review(models.Model):
         ]
         default_related_name = 'reviews'
 
+        ordering = ('pub_date',)
+
     def __str__(self):
         """Возвращает текст отзыва."""
-        return self.text
+        return f'Отзыв: {self.text}'
 
 
 class Comment(models.Model):
@@ -119,10 +145,15 @@ class Comment(models.Model):
         User, on_delete=models.CASCADE, related_name='comments')
     review = models.ForeignKey(
         Review, on_delete=models.CASCADE, related_name='comments')
-    text = models.TextField()
+    text = models.TextField('Текст')
     pub_date = models.DateTimeField(
         'Дата добавления', auto_now_add=True, db_index=True)
 
+    class Meta:
+            """Мета класс для модели Comment."""
+
+            ordering = ('pub_date',)
+
     def __str__(self):
         """Возвращает автора и текст комментария."""
-        return f'{self.author}, {self.review}'
+        return f'автор: {self.author}, отзыв: {self.review}'

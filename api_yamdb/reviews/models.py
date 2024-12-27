@@ -103,8 +103,13 @@ class TitleGenre(models.Model):
 class Review(models.Model):
     """Review model."""
 
-    text = models.TextField()
-    score = models.IntegerField()
+    text = models.TextField('Текст')
+    score = models.IntegerField(
+        validators=[
+            MinValueValidator(1, message="Оценка должна быть не меньше 1"),
+            MaxValueValidator(10, message="Оценка не может превышать 10")
+        ]
+    )
     pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
     author = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name='reviews')
@@ -114,7 +119,7 @@ class Review(models.Model):
     )
 
     class Meta:
-        """Указывает уникальное ограничение на genre и title."""
+        """Указывает уникальное ограничение на author и title."""
 
         constraints = [
             models.UniqueConstraint(
@@ -122,9 +127,11 @@ class Review(models.Model):
         ]
         default_related_name = 'reviews'
 
+        ordering = ('pub_date')
+
     def __str__(self):
         """Возвращает текст отзыва."""
-        return self.text
+        return f'Отзыв: {self.text}'
 
 
 class Comment(models.Model):
@@ -134,10 +141,15 @@ class Comment(models.Model):
         User, on_delete=models.CASCADE, related_name='comments')
     review = models.ForeignKey(
         Review, on_delete=models.CASCADE, related_name='comments')
-    text = models.TextField()
+    text = models.TextField('Текст')
     pub_date = models.DateTimeField(
         'Дата добавления', auto_now_add=True, db_index=True)
 
+class Meta:
+        """Мета класс для модели Comment."""
+
+        ordering = ('pub_date')
+
     def __str__(self):
         """Возвращает автора и текст комментария."""
-        return f'{self.author}, {self.review}'
+        return f'автор: {self.author}, отзыв: {self.review}'

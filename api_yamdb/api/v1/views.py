@@ -176,6 +176,8 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Создаёт отзыв, связывая его с автором и произведением."""
         title = self.get_title()
+        if Review.objects.filter(author=self.request.user, title=title).exists():
+            raise serializers.ValidationError('Вы уже оставили отзыв на это произведение')
         serializer.save(author=self.request.user, title=title)
 
 

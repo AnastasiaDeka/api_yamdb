@@ -240,6 +240,5 @@ class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         """Определяет модель и поля, которые будут сериализованы."""
 
-        fields = ('id', 'author', 'pub_date', 'review', 'text')
-        read_only_fields = ('review',)
+        fields = ('id', 'author', 'pub_date', 'text')
         model = Comment

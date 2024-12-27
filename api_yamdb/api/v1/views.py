@@ -1,11 +1,19 @@
 """API views для платформы Yamdb."""
 
+from django.db import IntegrityError
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Avg
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.tokens import default_token_generator
-from rest_framework import viewsets, permissions, status, mixins, filters
+from rest_framework import (
+    viewsets,
+    permissions,
+    status,
+    mixins,
+    filters,
+    serializers
+)
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.permissions import IsAuthenticated, AllowAny

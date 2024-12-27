@@ -217,14 +217,6 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ('id', 'author', 'text', 'score', 'pub_date')
         model = Review
 
-    # def validate_score(self, value):
-    #     """Проверяет, находится ли оценка в пределах от 1 до 10."""
-    #     if value < 1 or value > 10:
-    #         raise serializers.ValidationError(
-    #             'Score must be between 1 and 10.'
-    #         )
-    #     return value
-
     def create(self, validated_data):
         """Создаёт уникальный отзыв для пользователя и произведения."""
         user = validated_data['author']

@@ -9,7 +9,7 @@
 
 from django.contrib.auth import get_user_model
 from django.db import models
-from django.core.validators import MaxValueValidator, RegexValidator
+from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator
 from django.utils import timezone
 
 from users.models import User
@@ -127,7 +127,7 @@ class Review(models.Model):
         ]
         default_related_name = 'reviews'
 
-        ordering = ('pub_date')
+        ordering = ('pub_date',)
 
     def __str__(self):
         """Возвращает текст отзыва."""
@@ -145,10 +145,10 @@ class Comment(models.Model):
     pub_date = models.DateTimeField(
         'Дата добавления', auto_now_add=True, db_index=True)
 
-class Meta:
-        """Мета класс для модели Comment."""
+    class Meta:
+            """Мета класс для модели Comment."""
 
-        ordering = ('pub_date')
+            ordering = ('pub_date',)
 
     def __str__(self):
         """Возвращает автора и текст комментария."""

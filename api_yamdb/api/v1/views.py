@@ -173,15 +173,10 @@ class ReviewViewSet(viewsets.ModelViewSet):
         title_id = self.kwargs.get("title_id")
         return get_object_or_404(Title, pk=title_id)
 
-    def rating(self, request, *args, **kwargs):
-        """Обновляет рейтинг произведения на основе отзывов."""
-        pass
-
     def perform_create(self, serializer):
         """Создаёт отзыв, связывая его с автором и произведением."""
         title = self.get_title()
         serializer.save(author=self.request.user, title=title)
-        self.rating(self.request, title.id)
 
 
 class CommentViewSet(viewsets.ModelViewSet):

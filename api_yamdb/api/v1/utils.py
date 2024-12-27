@@ -3,9 +3,9 @@
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 
-
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
+
 
 def send_email(user, code=None) -> None:
     """Отправка email с кодом подтверждения."""
@@ -24,4 +24,3 @@ def send_email(user, code=None) -> None:
         [user.email],
         fail_silently=False,
     )
-

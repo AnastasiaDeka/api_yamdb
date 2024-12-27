@@ -1,27 +1,42 @@
 """Модуль сериализаторов для API."""
+
+import re
+from datetime import datetime
+from django.core.validators import RegexValidator
 from rest_framework import serializers
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from .constants import MAX_USERNAME_LENGTH, MAX_EMAIL_LENGTH
+from rest_framework.exceptions import ValidationError
 
 from reviews.models import Category, Genre, Title, Comment, Review
 from users.models import User
 from users.validators import custom_username_validator
 
+MAX_USERNAME_LENGTH = 150
+MAX_EMAIL_LENGTH = 254
+
 
 class UserCreateSerializer(serializers.Serializer):
     """Сериализатор для регистрации пользователя."""
 
+    # Поле для имени пользователя с валидаторами
     username = serializers.CharField(
         max_length=MAX_USERNAME_LENGTH,
-        validators=[UnicodeUsernameValidator()],
+        validators=[
+            # Валидатор от Django для проверки стандартного формата имени
+            UnicodeUsernameValidator(),
+            # Кастомный валидатор для запрета имени 'me'
+            RegexValidator(
+                regex=r'^(?!me$).*$', 
+                message="Имя пользователя не может быть 'me'."
+            )
+        ],
         error_messages={
             "required": "Это поле обязательно для заполнения.",
-            "max_length": (
-                "Длина имени пользователя не может превышать 150 символов."
-            ),
+            "max_length": "Длина имени пользователя не может превышать 150 символов.",
         }
     )
 
+    # Поле для email с валидацией длины и формата
     email = serializers.EmailField(
         max_length=MAX_EMAIL_LENGTH,
         error_messages={
@@ -30,71 +45,42 @@ class UserCreateSerializer(serializers.Serializer):
         }
     )
 
-    def validate_username(self, value):
-        """Проверка валидности имени пользователя."""
-        custom_username_validator(value)
-        return value
-
     def validate(self, data):
-        """Кастомная валидация комбинации username и email."""
-        username = data.get('username')
-        email = data.get('email')
+        """
+        Кастомная валидация комбинации username и email.
+        Проверяем, что пользователь с таким именем или email не существует.
+        """
+        username = data['username']  # Получаем username из данных
+        email = data['email']  # Получаем email из данных
 
-        user_by_email = User.objects.filter(email=email).first()
-        user_by_username = User.objects.filter(username=username).first()
-
-        if (user_by_email and user_by_username
-                and user_by_email != user_by_username):
-            error_msg = {}
-
-            if user_by_email:
-                error_msg['email'] = [
-                    'Пользователь с таким E-mail уже существует.'
-                ]
-            if user_by_username:
-                error_msg['username'] = [
-                    'Пользователь с таким именем уже существует.'
-                ]
-
-            raise serializers.ValidationError(error_msg)
-
-        if user_by_email:
+        # Проверка существующего пользователя с таким email
+        if User.objects.filter(email=email).exists():
             raise serializers.ValidationError({
-                'email': ['Пользователь с таким E-mail уже существует.']
+                'email': ["Пользователь с таким E-mail уже существует."]
             })
 
-        if user_by_username:
+        # Проверка существующего пользователя с таким username
+        if User.objects.filter(username=username).exists():
             raise serializers.ValidationError({
-                'username': ['Пользователь с таким именем уже существует.']
+                'username': ["Пользователь с таким именем уже существует."]
             })
 
-        return data
-
-    def create(self, validated_data):
-        """Создание пользователя или обновление кода подтверждения."""
-        user = User.objects.filter(
-            username=validated_data['username'],
-            email=validated_data['email']
-        ).first()
-
-        if user:
-            user.generate_new_confirmation_code()
-            return user
-
-        user = User.objects.create_user(
-            username=validated_data['username'],
-            email=validated_data['email']
-        )
-        user.set_unusable_password()
-        return user
+        return data  # Возвращаем данные, если всё в порядке
 
 
 class UserRecieveTokenSerializer(serializers.Serializer):
     """Сериализатор для получения токена по коду подтверждения."""
 
+    # Поле для имени пользователя с добавленным валидатором для "me"
     username = serializers.CharField(
         max_length=MAX_USERNAME_LENGTH,
-        validators=[UnicodeUsernameValidator()],
+        validators=[
+            UnicodeUsernameValidator(),
+            RegexValidator(
+                regex=r'^(?!me$).*$', 
+                message='Имя пользователя не может быть "me".'
+            )
+        ],
         error_messages={
             "required": "Это поле обязательно для заполнения.",
             "max_length": (
@@ -104,19 +90,13 @@ class UserRecieveTokenSerializer(serializers.Serializer):
         }
     )
 
+    # Поле для кода подтверждения
     confirmation_code = serializers.CharField(
         error_messages={
             "required": "Это поле обязательно для заполнения.",
         }
     )
 
-    def validate_username(self, value):
-        """Кастомная валидация имени пользователя."""
-        if value.lower() == 'me':
-            raise serializers.ValidationError(
-                'Имя пользователя "me" недопустимо.'
-            )
-        return value
 
 
 class UserMeSerializer(serializers.ModelSerializer):
@@ -124,20 +104,17 @@ class UserMeSerializer(serializers.ModelSerializer):
 
     class Meta:
         """Определяет модель и поля, которые будут сериализованы."""
-
         model = User
-        fields = ('username', 'email', 'first_name', 'last_name', 'bio')
+        fields = ('username', 'email', 'first_name', 'last_name', 'bio', 'role')
 
-
-class UserSerializer(serializers.ModelSerializer):
-    """Сериализатор для отображения данных пользователя."""
-
-    class Meta:
-        """Определяет модель и поля, которые будут сериализованы."""
-
-        model = User
-        fields = ('username', 'email', 'first_name',
-                  'last_name', 'bio', 'role')
+    def update(self, instance, validated_data):
+        """Метод для обновления данных текущего пользователя.
+        Роль пользователя не изменяется.
+        """
+        # Удаляем поле 'role' из данных, если оно присутствует
+        validated_data.pop('role', None)
+        # Обновляем остальные поля
+        return super().update(instance, validated_data)
 
 
 class CategorySerializer(serializers.ModelSerializer):

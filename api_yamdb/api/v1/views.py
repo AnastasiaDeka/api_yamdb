@@ -1,5 +1,6 @@
 """API views для платформы Yamdb."""
 
+from rest_framework.views import APIView
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Avg
@@ -8,7 +9,7 @@ from django.contrib.auth.tokens import default_token_generator
 from rest_framework import viewsets, permissions, status, mixins, filters
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import action, api_view, permission_classes
 
@@ -17,7 +18,7 @@ from users.models import User
 from reviews.models import Category, Genre, Title, Review
 from .serializers import (
     TitleListSerializer, UserCreateSerializer,
-    UserRecieveTokenSerializer,
+    UserRecieveTokenSerializer, UserRoleSerializer,
     CategorySerializer, GenreSerializer, TitleSerializer,
     ReviewSerializer, CommentSerializer, UserMeSerializer,
 )
@@ -100,7 +101,6 @@ class TokenObtainViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):
 
         user = get_object_or_404(User, username=username)
 
-        # Используем default_token_generator.check_token для проверки токена
         if not default_token_generator.check_token(user, confirmation_code):
             return Response(
                 {'confirmation_code': 'Код подтверждения невалиден'},
@@ -109,6 +109,32 @@ class TokenObtainViewSet(viewsets.GenericViewSet, mixins.CreateModelMixin):
 
         token = AccessToken.for_user(user)
         return Response({'token': str(token)}, status=status.HTTP_200_OK)
+
+
+class ChangeUserRoleView(APIView):
+    """Представление для изменения роли пользователя."""
+
+    permission_classes = [IsAdminUser]
+
+    def patch(self, request, *args, **kwargs):
+        """Изменяет роль пользователя."""
+        user_id = kwargs.get('user_id')
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'Пользователь не найден.'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UserRoleSerializer(user,
+                                        data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data,
+                            status=status.HTTP_200_OK)
+
+        return Response(serializer.errors,
+                        status=status.HTTP_400_BAD_REQUEST)
 
 
 class TitleViewSet(viewsets.ModelViewSet):

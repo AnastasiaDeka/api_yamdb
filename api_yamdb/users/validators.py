@@ -1,18 +1,21 @@
 """Модуль с функциями для валидации данных в модели пользователя."""
-import re
 from django.core.exceptions import ValidationError
+
+from users.constants import DISALLOWED_USERNAMES
 
 
 def custom_username_validator(value):
     """Проверка недопустимых символов и зарезервированных ников."""
-    if value.lower() == "me":
+    if value.lower() in DISALLOWED_USERNAMES:
         raise ValidationError(
-            "Ник 'me' зарезервирован и не может быть использован."
+            f'Ник "{value}" зарезервирован и не может быть использован.'
         )
 
-    disallowed_symbols = re.compile(r'[^a-zA-Z0-9_-]')
-    if disallowed_symbols.search(value):
+
+def validate_username(value):
+    """Проверяет, что имя пользователя не входит в список запрещённых."""
+    if value.lower() in DISALLOWED_USERNAMES:
         raise ValidationError(
-            f"Ник '{value}' содержит недопустимые символы. "
-            "Разрешены только латинские буквы, цифры, символы '_' и '-'."
+            f'Имя пользователя "{value}" запрещено для использования.'
         )
+    return value

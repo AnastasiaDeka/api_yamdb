@@ -10,7 +10,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet,
-    TokenObtainViewSet, ChangeUserRoleView,
+    TokenObtainViewSet,
     CategoryViewSet, GenreViewSet, TitleViewSet,
     ReviewViewSet, CommentViewSet, user_confirmation_view,
 )
@@ -38,7 +38,5 @@ auth_urls = [
 
 urlpatterns = [
     path('auth/', include(auth_urls)),
-    path('', include(router.urls)),
-    path('users/<int:user_id>/role/', ChangeUserRoleView.as_view(),
-         name='change-user-role'),
+    path('', include(router.urls))
 ]

@@ -1,10 +1,9 @@
 """Модель пользователя для проекта YaMDB."""
-from django.contrib.auth.models import AbstractUser, UserManager
+from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 from users.constants import (
-    MAX_USERNAME_LENGTH, MAX_EMAIL_LENGTH, MAX_ROLE_LENGTH,
-    MAX_CONFIRMATION_CODE_LENGTH)
+    MAX_USERNAME_LENGTH, MAX_ROLE_LENGTH)
 from .validators import custom_username_validator
 
 
@@ -19,22 +18,19 @@ class UserRole(models.TextChoices):
 class User(AbstractUser):
     """Модель пользователя проекта YaMDB."""
 
-    objects = UserManager()
-
     username = models.CharField(
         max_length=MAX_USERNAME_LENGTH,
         unique=True,
         validators=[UnicodeUsernameValidator(),
                     custom_username_validator],
         error_messages={
-            'unique': "Пользователь с таким ником уже существует.",
+            'unique': 'Пользователь с таким ником уже существует.',
         },
         verbose_name='Имя пользователя'
     )
 
     email = models.EmailField(
         unique=True,
-        max_length=MAX_EMAIL_LENGTH,
         verbose_name='E-mail'
     )
 
@@ -49,13 +45,6 @@ class User(AbstractUser):
         blank=True,
         default='',
         verbose_name='Биография'
-    )
-
-    confirmation_code = models.CharField(
-        max_length=MAX_CONFIRMATION_CODE_LENGTH,
-        blank=True,
-        null=True,
-        verbose_name='Код подтверждения'
     )
 
     class Meta:

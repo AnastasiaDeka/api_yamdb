@@ -1,14 +1,12 @@
 """Модуль сериализаторов для API."""
-
-from django.core.validators import RegexValidator
 from rest_framework import serializers
 from django.contrib.auth.validators import UnicodeUsernameValidator
 
 from reviews.models import Category, Genre, Title, Comment, Review
 from users.models import User
 
-MAX_USERNAME_LENGTH = 150
-MAX_EMAIL_LENGTH = 254
+from users.constants import MAX_USERNAME_LENGTH, MAX_EMAIL_LENGTH
+from users.validators import validate_username
 
 
 class UserCreateSerializer(serializers.Serializer):
@@ -18,15 +16,13 @@ class UserCreateSerializer(serializers.Serializer):
         max_length=MAX_USERNAME_LENGTH,
         validators=[
             UnicodeUsernameValidator(),
-            RegexValidator(
-                regex=r'^(?!me$).*$',
-                message='Имя пользователя не может быть "me".'
-            ),
+            validate_username,
         ],
         error_messages={
             'required': 'Это поле обязательно для заполнения.',
             'max_length': (
-                'Длина имени пользователя не может превышать 150 символов.'
+                f'Длина имени пользователя не может превышать '
+                f'{MAX_USERNAME_LENGTH} символов.'
             ),
         }
     )
@@ -41,30 +37,29 @@ class UserCreateSerializer(serializers.Serializer):
 
     def validate(self, data):
         """Кастомная валидация комбинации username и email."""
+        errors = {}
+
         username = data.get('username')
         email = data.get('email')
 
         user_same_username = User.objects.filter(username=username).first()
-
         if user_same_username:
             if user_same_username.email != email:
-                raise serializers.ValidationError({
-                    'username': [
-                        'Пользователь с таким именем уже существует,'
-                        'но с другим email.'
-                    ]
-                })
+                errors['username'] = [
+                    'Пользователь с таким именем уже существует,'
+                    'но с другим email.'
+                ]
 
         user_same_email = User.objects.filter(email=email).first()
-
         if user_same_email:
             if user_same_email.username != username:
-                raise serializers.ValidationError({
-                    'email': [
-                        'Пользователь с таким E-mail уже существует,'
-                        'но с другим именем.'
-                    ]
-                })
+                errors['email'] = [
+                    'Пользователь с таким E-mail уже существует, '
+                    'но с другим именем.'
+                ]
+
+        if errors:
+            raise serializers.ValidationError(errors)
 
         return data
 
@@ -76,10 +71,7 @@ class UserRecieveTokenSerializer(serializers.Serializer):
         max_length=MAX_USERNAME_LENGTH,
         validators=[
             UnicodeUsernameValidator(),
-            RegexValidator(
-                regex=r'^(?!me$).*$',
-                message='Имя пользователя не может быть "me".'
-            )
+            validate_username,
         ],
         error_messages={
             'required': 'Это поле обязательно для заполнения.',
@@ -111,24 +103,6 @@ class UserMeSerializer(serializers.ModelSerializer):
         """Метод для обновления данных текущего пользователя."""
         validated_data.pop('role', None)
         return super().update(instance, validated_data)
-
-
-class UserRoleSerializer(serializers.ModelSerializer):
-    """Сериализатор для изменения роли пользователя."""
-
-    class Meta:
-        """Метаданные для сериализатора."""
-
-        model = User
-        fields = ('role',)
-
-    def update(self, instance, validated_data):
-        """Метод для обновления роли пользователя."""
-        new_role = validated_data.get('role', instance.role)
-
-        instance.role = new_role
-        instance.save()
-        return instance
 
 
 class CategorySerializer(serializers.ModelSerializer):

@@ -1,5 +1,6 @@
 """Настройка админки для модели User в проекте YaMDb."""
 from django.contrib import admin
+
 from .models import User
 
 

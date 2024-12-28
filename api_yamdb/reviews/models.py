@@ -109,8 +109,8 @@ class Review(models.Model):
     text = models.TextField('Текст')
     score = models.IntegerField(
         validators=[
-            MinValueValidator(MIN_SCORE, message="Оценка должна быть не меньше 1"),
-            MaxValueValidator(MAX_SCORE, message="Оценка не может превышать 10")
+            MinValueValidator(MIN_SCORE, message=f'Оценка должна быть не меньше {MIN_SCORE}'),
+            MaxValueValidator(MAX_SCORE, message=f'Оценка должна быть не меньше {MAX_SCORE}')
         ]
     )
     pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)

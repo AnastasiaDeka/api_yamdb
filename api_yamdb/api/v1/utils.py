@@ -1,18 +1,12 @@
 """Утилиты для работы с email в проекте."""
-
-from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
-
+from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
 
 
-def send_email(user, code=None) -> None:
+def send_email(user) -> None:
     """Отправка email с кодом подтверждения."""
-    if code is None:
-        code = default_token_generator.make_token(user)
-        user.confirmation_code = code
-        user.save()
+    code = default_token_generator.make_token(user)
 
     subject = 'Ваш код подтверждения'
     message = f'Ваш код: {code}'
@@ -20,7 +14,7 @@ def send_email(user, code=None) -> None:
     send_mail(
         subject,
         message,
-        'admin@yamdb.com',
+        settings.DEFAULT_FROM_EMAIL,
         [user.email],
         fail_silently=False,
     )

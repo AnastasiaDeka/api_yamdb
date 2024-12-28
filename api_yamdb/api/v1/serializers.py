@@ -1,11 +1,8 @@
 """Модуль сериализаторов для API."""
 
-import re
-from datetime import datetime
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from rest_framework.exceptions import ValidationError
 
 from reviews.models import Category, Genre, Title, Comment, Review
 from users.models import User
@@ -136,27 +133,52 @@ class GenreSerializer(serializers.ModelSerializer):
         fields = ('name', 'slug')
 
 
+class TitleListSerializer(serializers.ModelSerializer):
+    """Сериализатор для списка произведений."""
+
+    category = CategorySerializer(read_only=True)
+    genre = GenreSerializer(many=True, read_only=True)
+    rating = serializers.IntegerField(read_only=True, default=None)
+
+    class Meta:
+        """Определяет модель и поля, которые будут сериализованы."""
+
+        model = Title
+        fields = ('id', 'name', 'year', 'rating',
+                  'description', 'category', 'genre')
+
+
 class TitleSerializer(serializers.ModelSerializer):
     """Сериализатор для произведений."""
 
     category = serializers.SlugRelatedField(
         slug_field='slug',
-        queryset=Category.objects.all()
+        queryset=Category.objects.all(),
+        required=True
     )
     genre = serializers.SlugRelatedField(
         many=True,
         slug_field='slug',
-        queryset=Genre.objects.all()
+        queryset=Genre.objects.all(),
+        required=True
     )
-    rating = serializers.IntegerField(read_only=True)
+
+    def validate_genre(self, value):
+        """Проверка, что список жанров не пуст."""
+        if not value:
+            raise serializers.ValidationError(
+                'Список жанров не может быть пустым.'
+            )
+        return value
 
     class Meta:
+        """Определяет модель и поля, которые будут сериализованы."""
+
         model = Title
         fields = (
             'id',
             'name',
             'year',
-            'rating',
             'description',
             'genre',
             'category',
@@ -164,20 +186,7 @@ class TitleSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         """Преобразование ответа в соответствии с ТЗ."""
-        representation = super().to_representation(instance)
-
-        category = instance.category
-        representation['category'] = {
-            'name': category.name,
-            'slug': category.slug
-        } if category else None
-
-        genres = instance.genre.all()
-        representation['genre'] = [
-            {'name': genre.name, 'slug': genre.slug} for genre in genres
-        ]
-
-        return representation
+        return TitleListSerializer(instance).data
 
 
 class ReviewSerializer(serializers.ModelSerializer):

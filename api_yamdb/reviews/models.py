@@ -18,7 +18,6 @@ from users.models import User
 from .validators import year_validator
 
 MAX_NAME_LENGTH = 256
-MAX_SLUG_LENGTH = 50
 
 User = get_user_model()
 
@@ -27,7 +26,7 @@ class BaseModel(models.Model):
     """Базовая модель для моделей жанра и категории."""
 
     name = models.CharField(max_length=MAX_NAME_LENGTH)
-    slug = models.SlugField(unique=True, max_length=MAX_SLUG_LENGTH)
+    slug = models.SlugField(unique=True)
 
     class Meta:
         """Мета класс для базовой модели."""

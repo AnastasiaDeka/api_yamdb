@@ -220,6 +220,17 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ('id', 'author', 'text', 'score', 'pub_date')
         model = Review
 
+    def create(self, validated_data):
+        """Создаёт уникальный отзыв для пользователя и произведения."""
+        user = validated_data['author']
+        title = validated_data['title']
+
+        if Review.objects.filter(author=user, title=title).exists():
+            raise serializers.ValidationError(
+                'Вы уже оставили отзыв на это произведение.'
+            )
+        return super().create(validated_data)
+
 
 class CommentSerializer(serializers.ModelSerializer):
     """Сериализатор для комментариев к ревью."""

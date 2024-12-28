@@ -19,6 +19,8 @@ from .validators import year_validator
 
 MAX_NAME_LENGTH = 256
 MAX_SLUG_LENGTH = 50
+MIN_SCORE = 1
+MAX_SCORE = 10
 
 User = get_user_model()
 
@@ -107,8 +109,8 @@ class Review(models.Model):
     text = models.TextField('Текст')
     score = models.IntegerField(
         validators=[
-            MinValueValidator(1, message="Оценка должна быть не меньше 1"),
-            MaxValueValidator(10, message="Оценка не может превышать 10")
+            MinValueValidator(MIN_SCORE, message="Оценка должна быть не меньше 1"),
+            MaxValueValidator(MAX_SCORE, message="Оценка не может превышать 10")
         ]
     )
     pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)

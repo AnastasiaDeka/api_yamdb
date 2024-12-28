@@ -1,6 +1,5 @@
 """API views для платформы Yamdb."""
 
-from django.db import IntegrityError
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from django.db.models import Avg
@@ -24,6 +23,7 @@ from .filters import TitleFilter
 from users.models import User
 from reviews.models import Category, Genre, Title, Review
 from .serializers import (
+    TitleListSerializer,
     UserCreateSerializer,
     UserRecieveTokenSerializer,
     CategorySerializer, GenreSerializer, TitleSerializer,
@@ -128,12 +128,13 @@ class TitleViewSet(viewsets.ModelViewSet):
     filterset_class = TitleFilter
     search_fields = ('name', 'year', 'category__slug', 'genre__slug')
     http_method_names = ['get', 'post', 'patch', 'delete']
-    serializer_class = TitleSerializer
+    queryset = Title.objects.annotate(rating=Avg('reviews__score'))
 
-    def get_queryset(self):
-        return Title.objects.annotate(
-            rating=Avg('reviews__score')
-        )
+    def get_serializer_class(self):
+        """Возвращает сериализатор в зависимости от действия."""
+        if self.action == 'list':
+            return TitleListSerializer
+        return TitleSerializer
 
 
 class CategoryViewSet(CategoryGenreBaseViewSet):
@@ -170,8 +171,11 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Создаёт отзыв, связывая его с автором и произведением."""
         title = self.get_title()
-        if Review.objects.filter(author=self.request.user, title=title).exists():
-            raise serializers.ValidationError('Вы уже оставили отзыв на это произведение')
+        if Review.objects.filter(
+            author=self.request.user, title=title
+        ).exists():
+            raise serializers.ValidationError(
+                'Вы уже оставили отзыв на это произведение')
         serializer.save(author=self.request.user, title=title)
 
 

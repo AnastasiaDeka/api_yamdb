@@ -11,12 +11,14 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.core.validators import (
     MinValueValidator,
-    MaxValueValidator,
-    RegexValidator
+    MaxValueValidator
 )
-from django.utils import timezone
 
 from users.models import User
+from .validators import year_validator
+
+MAX_NAME_LENGTH = 256
+MAX_SLUG_LENGTH = 50
 
 User = get_user_model()
 
@@ -24,18 +26,8 @@ User = get_user_model()
 class BaseModel(models.Model):
     """Базовая модель для моделей жанра и категории."""
 
-    name = models.CharField(max_length=256)
-    slug = models.SlugField(
-        unique=True,
-        max_length=50,
-        validators=[
-            RegexValidator(
-                regex=r'^[-a-zA-Z0-9_]+$',
-                message=('Слаг может содержать только буквы,'
-                         'цифры, подчеркивания и дефисы'),
-            ),
-        ]
-    )
+    name = models.CharField(max_length=MAX_NAME_LENGTH)
+    slug = models.SlugField(unique=True, max_length=MAX_SLUG_LENGTH)
 
     class Meta:
         """Мета класс для базовой модели."""
@@ -47,6 +39,12 @@ class BaseModel(models.Model):
 class Category(BaseModel):
     """Модель категории."""
 
+    class Meta:
+        """Мета класс для модели Category."""
+
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
+
     def __str__(self):
         """Возвращает строковое представление модели."""
         return f'Категория: {self.name}'
@@ -54,6 +52,12 @@ class Category(BaseModel):
 
 class Genre(BaseModel):
     """Модель жанра."""
+
+    class Meta:
+        """Мета класс для модели Genre."""
+
+        verbose_name = 'Жанр'
+        verbose_name_plural = 'Жанры'
 
     def __str__(self):
         """Возвращает строковое представление модели."""
@@ -63,13 +67,8 @@ class Genre(BaseModel):
 class Title(models.Model):
     """Модель произведения."""
 
-    name = models.CharField(max_length=256)
-    year = models.SmallIntegerField(
-        validators=[MaxValueValidator(
-            timezone.now().year,
-            message='Год не может быть больше текущего'
-        )]
-    )
+    name = models.CharField(max_length=MAX_NAME_LENGTH)
+    year = models.SmallIntegerField(validators=[year_validator])
     description = models.TextField(blank=True)
     genre = models.ManyToManyField(Genre, through='TitleGenre')
     category = models.ForeignKey(
@@ -79,14 +78,12 @@ class Title(models.Model):
         """Мета класс для модели Title."""
 
         ordering = ('name', 'year')
+        verbose_name = 'Произведение'
+        verbose_name_plural = 'Произведения'
 
     def __str__(self):
         """Возвращает строковое представление произведения."""
-        genres = ', '.join(self.genre.values_list('name', flat=True))
-        return (f'Название: "{self.name}", '
-                f'год выпуска: {self.year}, '
-                f'категория: {self.category}, '
-                f'жанр: {genres}')
+        return (f'Название: "{self.name}", год выпуска: {self.year}')
 
 
 class TitleGenre(models.Model):
@@ -132,6 +129,8 @@ class Review(models.Model):
         default_related_name = 'reviews'
 
         ordering = ('pub_date',)
+        verbose_name = 'Отзыв'
+        verbose_name_plural = 'Отзывы'
 
     def __str__(self):
         """Возвращает текст отзыва."""
@@ -150,9 +149,11 @@ class Comment(models.Model):
         'Дата добавления', auto_now_add=True, db_index=True)
 
     class Meta:
-            """Мета класс для модели Comment."""
+        """Мета класс для модели Comment."""
 
-            ordering = ('pub_date',)
+        ordering = ('pub_date',)
+        verbose_name = 'Комментарий'
+        verbose_name_plural = 'Комментарии'
 
     def __str__(self):
         """Возвращает автора и текст комментария."""

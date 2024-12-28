@@ -113,6 +113,24 @@ class UserMeSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+class UserRoleSerializer(serializers.ModelSerializer):
+    """Сериализатор для изменения роли пользователя."""
+
+    class Meta:
+        """Метаданные для сериализатора."""
+
+        model = User
+        fields = ('role',)
+
+    def update(self, instance, validated_data):
+        """Метод для обновления роли пользователя."""
+        new_role = validated_data.get('role', instance.role)
+
+        instance.role = new_role
+        instance.save()
+        return instance
+
+
 class CategorySerializer(serializers.ModelSerializer):
     """Сериализатор для категорий."""
 

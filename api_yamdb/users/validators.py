@@ -10,9 +10,9 @@ def custom_username_validator(value):
             "Ник 'me' зарезервирован и не может быть использован."
         )
 
-    disallowed_symbols = re.compile(r'[^a-zA-Z0-9_]')
+    disallowed_symbols = re.compile(r'[^a-zA-Z0-9_-]')
     if disallowed_symbols.search(value):
         raise ValidationError(
             f"Ник '{value}' содержит недопустимые символы. "
-            "Разрешены только латинские буквы, цифры и символ '_'."
+            "Разрешены только латинские буквы, цифры, символы '_' и '-'."
         )

@@ -4,7 +4,7 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 from users.constants import (
     MAX_USERNAME_LENGTH, MAX_ROLE_LENGTH)
-from .validators import custom_username_validator
+from .validators import validate_username
 
 
 class UserRole(models.TextChoices):
@@ -22,7 +22,7 @@ class User(AbstractUser):
         max_length=MAX_USERNAME_LENGTH,
         unique=True,
         validators=[UnicodeUsernameValidator(),
-                    custom_username_validator],
+                    validate_username],
         error_messages={
             'unique': 'Пользователь с таким ником уже существует.',
         },

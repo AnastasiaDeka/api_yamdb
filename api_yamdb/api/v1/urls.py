@@ -10,18 +10,18 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet,
-    TokenObtainViewSet,
+    TokenObtainViewSet, ChangeUserRoleView,
     CategoryViewSet, GenreViewSet, TitleViewSet,
     ReviewViewSet, CommentViewSet, user_confirmation_view,
 )
 
 router = DefaultRouter()
 router.register('users', UserViewSet, basename='users')
-router.register(r'auth/token',
+router.register('auth/token',
                 TokenObtainViewSet, basename='token')
-router.register(r'categories', CategoryViewSet, basename='categories')
-router.register(r'genres', GenreViewSet, basename='genres')
-router.register(r'titles', TitleViewSet, basename='titles')
+router.register('categories', CategoryViewSet, basename='categories')
+router.register('genres', GenreViewSet, basename='genres')
+router.register('titles', TitleViewSet, basename='titles')
 router.register(r'titles/(?P<title_id>\d+)/reviews', ReviewViewSet,
                 basename='reviews')
 router.register(
@@ -39,4 +39,6 @@ auth_urls = [
 urlpatterns = [
     path('auth/', include(auth_urls)),
     path('', include(router.urls)),
+    path('users/<int:user_id>/role/', ChangeUserRoleView.as_view(),
+         name='change-user-role'),
 ]

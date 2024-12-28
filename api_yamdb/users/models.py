@@ -1,10 +1,10 @@
 """Модель пользователя для проекта YaMDB."""
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from .validators import custom_username_validator
 from django.db import models
-
-from api.v1.constants import MAX_USERNAME_LENGTH, MAX_CONFIRMATION_CODE_LENGTH
+from users.constants import (
+    MAX_USERNAME_LENGTH, MAX_EMAIL_LENGTH, MAX_ROLE_LENGTH)
+from .validators import custom_username_validator
 
 
 class UserRole(models.TextChoices):
@@ -15,58 +15,39 @@ class UserRole(models.TextChoices):
     USER = 'user', 'User'
 
 
-class UserManagerYaMDB(UserManager):
-    """Менеджер для создания пользователей в проекте YaMDB."""
-
-    def create_superuser(self,
-                         username,
-                         email=None,
-                         password=None,
-                         **extra_fields):
-        """Создаёт суперпользователя с ролью администратора."""
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('is_staff', True)
-
-        return super().create_superuser(username,
-                                        email,
-                                        password,
-                                        **extra_fields)
-
-
 class User(AbstractUser):
     """Модель пользователя проекта YaMDB."""
 
-    objects = UserManagerYaMDB()
+    objects = UserManager()
 
     username = models.CharField(
         max_length=MAX_USERNAME_LENGTH,
         unique=True,
-        validators=[UnicodeUsernameValidator(), custom_username_validator],
+        validators=[UnicodeUsernameValidator(),
+                    custom_username_validator],
         error_messages={
             'unique': "Пользователь с таким ником уже существует.",
         },
+        verbose_name='Имя пользователя'
     )
 
     email = models.EmailField(
         unique=True,
+        max_length=MAX_EMAIL_LENGTH,
         verbose_name='E-mail'
     )
+
     role = models.CharField(
-        max_length=10,
+        max_length=MAX_ROLE_LENGTH,
         choices=UserRole.choices,
         default=UserRole.USER,
         verbose_name='Роль'
     )
+
     bio = models.TextField(
         blank=True,
         default='',
         verbose_name='Биография'
-    )
-    confirmation_code = models.CharField(
-        max_length=MAX_CONFIRMATION_CODE_LENGTH,
-        blank=True,
-        null=True,
-        verbose_name='Код подтверждения'
     )
 
     class Meta:
@@ -74,6 +55,7 @@ class User(AbstractUser):
 
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+        ordering = ['username']
 
     @property
     def is_admin(self):
@@ -85,11 +67,6 @@ class User(AbstractUser):
         """Проверка на модератора."""
         return self.role == UserRole.MODERATOR
 
-    @classmethod
-    def roles(cls):
-        """Возвращает список всех ролей пользователя."""
-        return [role[0] for role in UserRole.choices]
-
     def __str__(self):
         """Строковое представление пользователя."""
-        return self.username
+        return f"{self.username} ({self.role})"

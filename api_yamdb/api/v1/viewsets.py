@@ -1,3 +1,5 @@
+"""Вьюсеты для API."""
+
 from rest_framework import viewsets, mixins, filters
 
 from .permissions import IsAdminOrReadOnly

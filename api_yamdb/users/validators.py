@@ -10,4 +10,3 @@ def validate_username(value):
         raise ValidationError(
             f'Имя пользователя "{value}" запрещено для использования.'
         )
-    return value

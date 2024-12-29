@@ -2,9 +2,10 @@
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
-from users.constants import (
-    MAX_USERNAME_LENGTH, MAX_ROLE_LENGTH)
+
+from users.constants import MAX_USERNAME_LENGTH, MAX_ROLE_LENGTH
 from .validators import validate_username
+
 
 
 class UserRole(models.TextChoices):

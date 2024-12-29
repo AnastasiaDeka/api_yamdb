@@ -7,7 +7,6 @@ from users.constants import MAX_USERNAME_LENGTH, MAX_ROLE_LENGTH
 from .validators import validate_username
 
 
-
 class UserRole(models.TextChoices):
     """Роли пользователя."""
 

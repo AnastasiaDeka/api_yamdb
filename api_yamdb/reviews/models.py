@@ -18,7 +18,6 @@ from users.models import User
 from .validators import year_validator
 
 MAX_NAME_LENGTH = 256
-MAX_SLUG_LENGTH = 50
 MIN_SCORE = 1
 MAX_SCORE = 10
 
